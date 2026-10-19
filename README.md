@@ -4,19 +4,24 @@ The things every one of my Android apps needs, in one small library: in-app upda
 
 <table>
 <tr>
-<td align="center"><img src="docs/gif/overview.gif" width="230" alt="The sample app: update dialog, More apps, review prompt, What's new, licences"><br><sub>Update dialog, More apps, review prompt, What's new, licences</sub></td>
-<td align="center"><img src="docs/gif/whats-new.gif" width="230" alt="What's new from the Play listing, from GitHub commits, the View screen and the dialog"><br><sub>What's new: Play listing, GitHub commits, View screen, dialog</sub></td>
-<td align="center"><img src="docs/gif/theme-light-dark.gif" width="230" alt="Material You: the sample in light and dark mode, Compose and View screens alike"><br><sub>Material You, light and dark, Compose and View screens alike</sub></td>
+<td align="center"><img src="docs/gif/overview.gif" width="200" alt="The sample app: home, update, featured app, review, more apps, what's new, licences, dark mode"><br><sub><b>Sample app</b>: one Material You app, every feature behind a button</sub></td>
+<td align="center"><img src="docs/gif/updates.gif" width="200" alt="The update prompt as a dialog, a bottom sheet and a snackbar"><br><sub><b>Updates</b>: dialog, bottom sheet, snackbar</sub></td>
+<td align="center"><img src="docs/gif/review.gif" width="200" alt="The review prompt: stars, feedback for low ratings, Play for high ones, sheet, snackbar"><br><sub><b>Review</b>: stars, feedback or Play, sheet, snackbar</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/gif/more-apps.gif" width="200" alt="Your other apps: home row, featured dialog, list, grid, cards, compact"><br><sub><b>Your other apps</b>: row, featured dialog, list, grid, cards, compact</sub></td>
+<td align="center"><img src="docs/gif/whats-new.gif" width="200" alt="What's new: the list, GitHub commits, the View screen, the after-update dialog"><br><sub><b>What's new</b>: list, GitHub commits, View screen, dialog</sub></td>
+<td align="center"><img src="docs/gif/licences.gif" width="200" alt="Open source licences: list, compact, cards, grouped by licence, the licence text"><br><sub><b>Licences</b>: list, compact, cards, by licence</sub></td>
 </tr>
 </table>
 
-Recorded from the sample app on an API 33 emulator. Stills of every screen are in [docs/screenshots](docs/screenshots).
+Recorded from the sample app in [`sample/`](sample) (section 11) on an API 33 emulator; the colours are the emulator's wallpaper, through Material You. Stills of every screen are in [docs/screenshots](docs/screenshots). Each section below has the flow it follows and the same recording.
 
 | Module | What's in it |
 | --- | --- |
 | `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdateReadyBar()`, `UpdateDialog()`, `ReviewPromptDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
-| `sample` | One screen that uses everything, with the template promo feed. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
+| `sample` | "Sample App": a Material You app with every feature behind a button, sample update and release-notes text, the real Trilokia promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
 
@@ -200,7 +205,7 @@ lifecycleScope.launch {
 
 One deliberate rule: when Play answers "up to date", the JSON file is **not** consulted, even if it names a newer version. A staged rollout may not have reached this phone yet, and a dialog sending the user to a Play page that still shows the old version would be a dead end. `updates.play` and `updates.json` are the two halves, for the details below.
 
-<img src="docs/screenshots/update-dialog.png" width="200" align="right" alt="The JSON update dialog">
+<img src="docs/gif/updates.gif" width="200" align="right" alt="The update prompt as a dialog, a bottom sheet and a snackbar">
 
 ### Through Play (`PlayUpdates`)
 
@@ -242,7 +247,7 @@ lifecycleScope.launch {
 
 ## 5. In-app review
 
-<img src="docs/screenshots/review-stars-low.png" width="200" align="right" alt="The Enjoying the app? prompt: two stars picked, Send feedback offered">
+<img src="docs/gif/review.gif" width="200" align="right" alt="The review prompt: stars, then feedback or Play, as a dialog, a sheet and a snackbar">
 
 Play's rating sheet is the goal, but it has two catches: Play shows it only a few times per user and never says whether it did, and it needs the app to come from Play. So the flow asks **you** first, with five stars that pop in; happy users go on to Play, unhappy ones get to tell you by mail instead of telling the whole store:
 
@@ -297,9 +302,22 @@ The feedback mail opens in the user's mail app with your address, the subject, a
 
 ## 6. Your own apps' promo (`AppPromos`)
 
-<img src="docs/screenshots/moreapps-compose.png" width="200" align="right" alt="The More apps list">
+Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows the ones the phone doesn't have yet. Edit the file, and all apps pick it up within a day.
 
-Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows the ones the phone doesn't have yet. Edit the file, and all apps pick it up within a day. [promo/apps.json](promo/apps.json) is the template; upload it as, say, `https://www.example.com/apps.json`:
+```mermaid
+flowchart TD
+    feed[apps.json on your server] -- "fetched once a day, kept for offline" --> filter{Installed on this phone, or this app itself?}
+    bundled[bundledJson in assets] -- "until the server has answered once" --> filter
+    filter -- yes --> hide([Left out])
+    filter -- no --> show[MoreAppsRow, MoreAppsList, openList] -- Get --> play([Play listing, this app as the referrer])
+    feed -- featured --> due{Not installed, not shown for 7 days, not dismissed?}
+    due -- yes --> dialog[Featured dialog]
+    dialog -- Get --> play
+    dialog -- "Not now" --> rest([Rests 7 days])
+```
+
+<img src="docs/gif/more-apps.gif" width="200" align="right" alt="Your other apps: home row, featured dialog, list, grid, cards, compact">
+ [promo/apps.json](promo/apps.json) is the template; upload it as, say, `https://www.example.com/apps.json`:
 
 ```json
 {
@@ -345,9 +363,23 @@ lifecycleScope.launch {
 
 ## 7. What's new (`WhatsNew`)
 
-<img src="docs/screenshots/whatsnew-dialog.png" width="200" align="right" alt="The What's new dialog">
+A "What's new" screen, and a dialog that shows this version's notes once after an update:
 
-A "What's new" screen, and a dialog that shows this version's notes once after an update. Pick where the text comes from:
+```mermaid
+flowchart TD
+    src{{Source: Play listing, JSON file, GitHub releases or commits, bundled}} -- "fetched once a day, cached, works offline" --> notes[notes: every version, newest first]
+    notes --> list[WhatsNewList, openList]
+    start([App start]) --> first{First run on this phone?}
+    first -- yes --> seen([Mark this version seen, show nothing])
+    first -- no --> changed{versionCode higher than the one last seen?}
+    changed -- no --> nothing([Nothing])
+    changed -- yes --> pending[pending: the versions in between] --> dialog[What's new dialog]
+    dialog -- OK --> seen
+```
+
+<img src="docs/gif/whats-new.gif" width="200" align="right" alt="What's new: the list, GitHub commits, the View screen, the after-update dialog">
+
+Pick where the text comes from:
 
 ```kotlin
 WhatsNew(context, WhatsNewSource.Play(packageName))                               // the Play listing's "What's new" box
@@ -385,9 +417,18 @@ lifecycleScope.launch { whatsNew.showDialog(activity, whatsNew.pending()) }
 
 ## 8. Open source licences
 
-<img src="docs/screenshots/licences-compose.png" width="200" align="right" alt="The licence list">
-
 A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back.
+
+```mermaid
+flowchart LR
+    deps[The app's Gradle dependencies] -- "AboutLibraries plugin, at build time" --> json[res/raw/aboutlibraries.json]
+    keep[res/raw/keep.xml] -. "keeps it through resource shrinking" .-> json
+    json --> screen[OpenSourceScreen, OpenSource.open: list, compact, cards, by licence]
+    screen -- tap --> text([The licence text])
+```
+
+<img src="docs/gif/licences.gif" width="200" align="right" alt="Open source licences: list, compact, cards, grouped by licence, the licence text">
+
 
 Three steps in the app:
 
@@ -424,6 +465,15 @@ The plugin needs network on the build machine to fetch SPDX licence texts the fi
 ## 9. Theme: one look for every element (`KitTheme`)
 
 <img src="docs/gif/theme-light-dark.gif" width="200" align="right" alt="Light and dark mode">
+
+```mermaid
+flowchart LR
+    mt[The app's MaterialTheme] --> compose[Compose elements: dialogs, lists, rows]
+    mt -- "SyncKitTheme()" --> kc[KitTheme.colors]
+    attrs[The app's theme attributes] -- "when nothing is set" --> kc
+    base[Material 3 baseline, light or dark] -- otherwise --> kc
+    kc --> views[View screens and dialogs]
+```
 
 The Compose elements (`UpdateDialog`, `MoreAppsRow`, `WhatsNewList`, `OpenSourceScreen`...) use the app's `MaterialTheme` as they are. The plain-View screens (More apps, What's new, Open source licences) and the dialogs have their own base theme (`Theme.PublishlyKit`: Material light/dark, edge to edge, a top bar with a back arrow) and are painted in colours that come from, in order:
 
@@ -537,7 +587,7 @@ The sample's More apps and Licences tabs have a switch for every layout. The pla
 | What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |
 | Licences tab | `OpenSourceScreen` |
 
-The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode, or change the wallpaper, to see every screen follow: `SampleTheme` in the sample is the whole theme setup, `SyncKitTheme()` inside it is what carries the colours to the View screens.
+The recordings at the top of this page are this app. The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode, or change the wallpaper, to see every screen follow: `SampleTheme` in the sample is the whole theme setup, `SyncKitTheme()` inside it is what carries the colours to the View screens.
 
 ## 12. Build and test
 
