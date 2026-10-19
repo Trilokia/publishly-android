@@ -1,0 +1,8 @@
+<resources>
+    <!-- Day/night so the window background matches dark mode before Compose draws; no action bar,
+         Compose draws its own top app bar. The View screens use the Kit theme (see SyncKitTheme) -->
+    <style name="Theme.Sample" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
