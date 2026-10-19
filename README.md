@@ -6,7 +6,7 @@ The things every one of my Android apps needs, in one small library: in-app upda
 <tr>
 <td align="center"><img src="docs/gif/overview.gif" width="230" alt="The sample app: update dialog, More apps, review prompt, What's new, licences"><br><sub>Update dialog, More apps, review prompt, What's new, licences</sub></td>
 <td align="center"><img src="docs/gif/whats-new.gif" width="230" alt="What's new from the Play listing, from GitHub commits, the View screen and the dialog"><br><sub>What's new: Play listing, GitHub commits, View screen, dialog</sub></td>
-<td align="center"><img src="docs/gif/theme-light-dark.gif" width="230" alt="The View screens and dialogs follow the app's Compose theme in light and dark mode"><br><sub>One theme for Compose and View screens, light and dark</sub></td>
+<td align="center"><img src="docs/gif/theme-light-dark.gif" width="230" alt="Material You: the sample in light and dark mode, Compose and View screens alike"><br><sub>Material You, light and dark, Compose and View screens alike</sub></td>
 </tr>
 </table>
 
@@ -450,19 +450,20 @@ KitTheme.colors = KitColors(
 
 ## 11. The sample app
 
-`./gradlew :sample:installDebug` puts "Sample App" on the phone: one screen with every feature behind a button. It needs no server of its own: the update file and the release notes are sample text shipped in `sample/src/main/assets/` (the update file offers 1.2 to this 1.1 build, so the update dialog shows), the promo feed is the real Trilokia one (apps already installed on the phone are left out), and the second "What's new" list reads a public GitHub repo's commits.
+`./gradlew :sample:installDebug` puts "Sample App" on the phone: a Material You app laid out the Now in Android way, with the wallpaper's colours on Android 12 and up (a branded teal on older phones), a top app bar, and bottom navigation between four tabs. It needs no server of its own: the update file and the release notes are sample text shipped in `sample/src/main/assets/` (the update file offers 1.2 to this 1.1 build, so the update dialog shows), the promo feed is the real Trilokia one (apps already installed on the phone are left out), and the "GitHub commits" switch on the What's new tab reads a public repo.
 
-| Button | Shows |
+| Where | Shows |
 | --- | --- |
-| All our apps (Compose list / View screen) | `MoreAppsList` / `promos.openList` |
-| Check Play for updates | `playUpdates.checkNow`, reports the result in a toast |
-| Ask for a review | `ReviewAsk`, always due here: our prompt, then Play's sheet or the Play listing |
-| Open source licences (Compose / View screen) | `OpenSourceScreen` / `OpenSource.open` |
-| What's new / from GitHub commits | `WhatsNewList` on the bundled notes and on a GitHub repo |
-| What's new (View screen) | `whatsNew.openList` |
-| What's new dialog | `whatsNew.showDialog`, forced, so it shows every time |
+| Home: "More apps from us" row | `MoreAppsRow` |
+| Home: Check Play for updates | `updates.play.checkNow`, reports the result in a toast |
+| Home: Rate this app | `ReviewAsk`, always due here: our prompt, then Play's sheet or the Play listing |
+| Home: This version's notes | `whatsNew.showDialog`, forced, so it shows every time |
+| Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
+| More apps tab | `MoreAppsList` |
+| What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |
+| Licences tab | `OpenSourceScreen` |
 
-The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode to see the theme follow.
+The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode, or change the wallpaper, to see every screen follow: `SampleTheme` in the sample is the whole theme setup, `SyncKitTheme()` inside it is what carries the colours to the View screens.
 
 ## 12. Build and test
 
