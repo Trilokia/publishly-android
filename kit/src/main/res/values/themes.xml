@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The base of the plain-View screens (More apps, What's new, Open source licences). No action
+         bar: PublishlyKit draws its own top bar in the app's colours. Dark version in values-night -->
+    <style name="Theme.PublishlyKit" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kit_background</item>
+        <item name="android:colorBackground">@color/kit_background</item>
+        <item name="android:colorPrimary">@color/kit_primary</item>
+        <item name="android:colorAccent">@color/kit_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- The base of the dialogs (update, featured app, what's new, licence text) -->
+    <style name="Theme.PublishlyKit.Dialog" parent="android:Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">@color/kit_primary</item>
+    </style>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PublishlyKit" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/kit_background</item>
+        <item name="android:colorBackground">@color/kit_background</item>
+        <item name="android:colorPrimary">@color/kit_primary</item>
+        <item name="android:colorAccent">@color/kit_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.PublishlyKit.Dialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/kit_primary</item>
+    </style>
+</resources>

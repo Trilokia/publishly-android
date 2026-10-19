@@ -1,0 +1,427 @@
+# Publishly Kit
+
+The things every one of my Android apps needs, in one small library: in-app updates, an in-app review prompt with a rule for when to ask, a "More apps from us" promo fed from a JSON file, a "What's new" screen, an open source licence list, and one theme so all of it looks like the app it lives in. Plain Kotlin at the core, so it fits old View/Java apps, plus a Compose module for new ones.
+
+<table>
+<tr>
+<td align="center"><img src="docs/gif/overview.gif" width="230" alt="The sample app: update dialog, More apps, What's new, licences"><br><sub>Update dialog, More apps, What's new, licences</sub></td>
+<td align="center"><img src="docs/gif/whats-new.gif" width="230" alt="What's new from the Play listing, from GitHub commits, the View screen and the dialog"><br><sub>What's new: Play listing, GitHub commits, View screen, dialog</sub></td>
+<td align="center"><img src="docs/gif/theme-light-dark.gif" width="230" alt="The View screens and dialogs follow the app's Compose theme in light and dark mode"><br><sub>One theme for Compose and View screens, light and dark</sub></td>
+</tr>
+</table>
+
+Recorded from the sample app on an API 34 emulator. Stills of every screen are in [docs/screenshots](docs/screenshots).
+
+| Module | What's in it |
+| --- | --- |
+| `kit` | `PlayUpdates`, `JsonUpdates`, `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateReadyBar()`, `UpdateDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
+| `sample` | One screen that uses everything, with the template promo feed. |
+
+Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
+
+## Contents
+
+1. [Add it](#1-add-it)
+2. [Quick start: a Compose app](#2-quick-start-a-compose-app)
+3. [Quick start: a View app](#3-quick-start-a-view-app)
+4. [In-app updates](#4-in-app-updates)
+5. [In-app review](#5-in-app-review)
+6. [Your own apps' promo](#6-your-own-apps-promo-apppromos)
+7. [What's new](#7-whats-new-whatsnew)
+8. [Open source licences](#8-open-source-licences)
+9. [Theme](#9-theme-one-look-for-every-element-kittheme)
+10. [Before you ship](#10-before-you-ship)
+11. [The sample app](#11-the-sample-app)
+12. [Build and test](#12-build-and-test)
+
+## 1. Add it
+
+Through [JitPack](https://jitpack.io). In `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+In the app module (replace `publishly-android` with this repository's name on GitHub and `<tag>` with a release tag such as `v1.0.0`):
+
+```kotlin
+dependencies {
+    implementation("com.github.Trilokia.publishly-android:kit:<tag>")
+    implementation("com.github.Trilokia.publishly-android:kit-compose:<tag>")   // Compose apps only
+}
+```
+
+Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:1.0.0` / `inc.trilokia:kit-compose:1.0.0`.
+
+The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
+
+## 2. Quick start: a Compose app
+
+Everything wired into one activity. Each piece is optional; delete what you don't need.
+
+```kotlin
+class MainActivity : ComponentActivity() {
+    private lateinit var playUpdates: PlayUpdates
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Play in-app updates. Build it here: it registers an activity-result launcher
+        playUpdates = PlayUpdates(this)
+        playUpdates.checkQuietly()
+
+        // Your own JSON update file (works for side-loaded builds and other stores)
+        val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
+        // Your other apps, from a JSON feed on your server
+        val promos = AppPromos(this, url = "https://www.example.com/apps.json")
+        // "What's new", from this app's Play listing
+        val whatsNew = WhatsNew(this, WhatsNewSource.Play(packageName))
+        // Ask for a review after 3 good moments, not in the first 2 days, at most once per 60 days
+        val reviewAsk = ReviewAsk(this)
+
+        setContent {
+            MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
+                SyncKitTheme()   // the View screens and dialogs take these colours too
+
+                // Dialogs, in turn: update first, then the featured app, then what's new
+                var updateChecked by remember { mutableStateOf(false) }
+                var pendingUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
+                LaunchedEffect(Unit) {
+                    pendingUpdate = jsonUpdates.check()
+                    updateChecked = true
+                }
+                pendingUpdate?.let { UpdateDialog(it, onDismiss = { pendingUpdate = null }) }
+                if (updateChecked && pendingUpdate == null) FeaturedPromoDialog(promos)
+                WhatsNewDialog(whatsNew)
+
+                Scaffold(bottomBar = { UpdateReadyBar(playUpdates) }) { padding ->
+                    Column(Modifier.padding(padding)) {
+                        MoreAppsRow(promos)                      // draws nothing when there is nothing to show
+                        Button(onClick = {
+                            doTheThingYourAppIsFor()
+                            reviewAsk.recordEvent()              // a good moment
+                            reviewAsk.askIfDue(this@MainActivity)
+                        }) { Text("Do the thing") }
+                        // Settings rows: WhatsNewList(whatsNew), MoreAppsList(promos), OpenSourceScreen()
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+## 3. Quick start: a View app
+
+The same features without Compose. Every screen has a plain-View version that takes the app's colours (see [Theme](#9-theme-one-look-for-every-element-kittheme)).
+
+```kotlin
+class MainActivity : AppCompatActivity() {   // ComponentActivity or AppCompatActivity, for PlayUpdates
+    private lateinit var playUpdates: PlayUpdates
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        playUpdates = PlayUpdates(this)
+        playUpdates.checkQuietly()
+        lifecycleScope.launch {
+            playUpdates.downloaded.collect { if (it) showRestartSnackbar { playUpdates.complete() } }
+        }
+
+        val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
+        val promos = AppPromos(this, url = "https://www.example.com/apps.json")
+        val whatsNew = WhatsNew(this, WhatsNewSource.Play(packageName))
+        val reviewAsk = ReviewAsk(this)
+
+        lifecycleScope.launch {
+            val update = jsonUpdates.check()
+            if (update != null) {
+                jsonUpdates.showDialog(this@MainActivity, update)
+            } else {
+                promos.featured()?.let { promos.showFeaturedDialog(this@MainActivity, it) }
+                whatsNew.showDialog(this@MainActivity, whatsNew.pending())
+            }
+        }
+
+        findViewById<View>(R.id.more_apps).setOnClickListener { promos.openList(this) }
+        findViewById<View>(R.id.whats_new).setOnClickListener { whatsNew.openList(this) }
+        findViewById<View>(R.id.licences).setOnClickListener { OpenSource.open(this) }
+        findViewById<View>(R.id.do_the_thing).setOnClickListener {
+            doTheThingYourAppIsFor()
+            reviewAsk.recordEvent()
+            reviewAsk.askIfDue(this)
+        }
+    }
+}
+```
+
+Java apps can call the same classes; the `suspend` functions (`check()`, `featured()`, `pending()`, `notes()`) need a coroutine, for example `BuildersKt.runBlocking` on a background thread, or a small Kotlin helper.
+
+## 4. In-app updates
+
+<img src="docs/screenshots/update-dialog.png" width="200" align="right" alt="The JSON update dialog">
+
+### Through Play (`PlayUpdates`)
+
+Play's own in-app update flow: the new version downloads in the background and the app asks for a restart.
+
+```kotlin
+playUpdates = PlayUpdates(this)   // in onCreate, before the activity starts
+playUpdates.checkQuietly()        // flexible flow: downloads when Play has a newer version
+```
+
+- `playUpdates.downloaded` is a `StateFlow<Boolean>`; it turns true when the download lands. Show "Restart" and call `playUpdates.complete()`. Compose apps drop `UpdateReadyBar(playUpdates)` into the layout and get both.
+- For a "Check for updates" row in Settings, `playUpdates.checkNow { result -> }` reports `UP_TO_DATE`, `FLOW_STARTED`, `DOWNLOADED` or `FAILED`.
+
+Play updates only work for apps installed from Play, and only once a higher versionCode is live on a track your test account is on. On an emulator or a side-loaded build, `checkNow` reports `FAILED`.
+
+### Through your own JSON file (`JsonUpdates`)
+
+The check the PGT apps have used for years: a small file on your server says which version is the latest. It works without Play, and it lets you push a message to old versions at any time. Host a file like this (`releaseNotes` may also be one string):
+
+```json
+{
+  "latestVersion": "0.21.7",
+  "latestVersionCode": "193",
+  "url": "https://play.google.com/store/apps/details?id=inc.trilokia.pubgfxtool.free",
+  "releaseNotes": ["This update includes:", "- New feature ..."]
+}
+```
+
+```kotlin
+val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
+lifecycleScope.launch {
+    jsonUpdates.check()?.let { info -> jsonUpdates.showDialog(this@MainActivity, info) }
+}
+```
+
+`check()` returns the newer version or null. The last server answer is kept, so an offline phone still sees the dialog it saw yesterday. Compose apps show `UpdateDialog(info, onDismiss)` instead of `showDialog`. Pass `cancelable = false` to either for a forced update.
+
+<br clear="right">
+
+## 5. In-app review
+
+```kotlin
+AppReview.ask(activity)   // Play's rating sheet; fire and forget
+```
+
+Play shows the sheet only a few times per user and never tells you whether it did, so the asks have to be rationed. `ReviewAsk` counts "good moments" and says when the next ask is due:
+
+| Rule | Default | Constructor parameter |
+| --- | --- | --- |
+| Good moments before the first ask | 3 | `minEvents` |
+| Days after install before the first ask | 2 | `minAgeMs` |
+| Days between asks | 60 | `restMs` |
+| Asks per phone, ever | 4 | `maxAsks` |
+
+```kotlin
+val reviewAsk = ReviewAsk(context)
+
+// After the app has just been useful (settings applied, a result found, a file saved...)
+reviewAsk.recordEvent()
+reviewAsk.askIfDue(activity)   // true when it asked
+```
+
+`reviewAsk.stop()` ends the asks on this phone for good, for a "Don't ask again" setting.
+
+## 6. Your own apps' promo (`AppPromos`)
+
+<img src="docs/screenshots/moreapps-compose.png" width="200" align="right" alt="The More apps list">
+
+Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows the ones the phone doesn't have yet. Edit the file, and all apps pick it up within a day. [promo/apps.json](promo/apps.json) is the template; upload it as, say, `https://www.example.com/apps.json`:
+
+```json
+{
+  "apps": [
+    { "package": "inc.trilokia.cardjuggler", "name": "Card Juggler: Bank Card Offers",
+      "tagline": "Share a shopping link, see which of your cards saves most",
+      "icon": "https://play-lh.googleusercontent.com/...=s256", "badge": "New", "priority": 100 }
+  ],
+  "featured": { "package": "inc.trilokia.cardjuggler", "title": "New from Trilokia: Card Juggler", "message": "..." }
+}
+```
+
+Only `package` and `name` are required. `url` sends "Get" somewhere other than the Play page. The Play link carries the promoting app's package as the install referrer, so Play Console shows which app brought each install.
+
+```kotlin
+val promos = AppPromos(
+    context,
+    url = "https://www.example.com/apps.json",
+    bundledJson = assets.open("apps.json").bufferedReader().readText(),   // optional: used until the server answers
+)
+```
+
+Compose apps:
+
+```kotlin
+MoreAppsRow(promos)          // a card with a scrolling row of icons; draws nothing when there's nothing to show
+MoreAppsList(promos)         // the full list with taglines and "Get" buttons, on its own screen
+FeaturedPromoDialog(promos)  // the featured app, in a dialog, when it's due (not installed, once a week, until dismissed)
+```
+
+View apps:
+
+```kotlin
+promos.openList(activity)                                   // the list screen
+lifecycleScope.launch {
+    promos.featured()?.let { promos.showFeaturedDialog(activity, it) }
+}
+```
+
+`promos.apps()` gives the filtered list for your own UI, `PromoIcons.load(context, url)` the icons (cached on disk). The featured dialog rests 7 days between showings (`featuredRestMs`), and "Not now" ends it for that app on that phone.
+
+<br clear="right">
+
+## 7. What's new (`WhatsNew`)
+
+<img src="docs/screenshots/whatsnew-dialog.png" width="200" align="right" alt="The What's new dialog">
+
+A "What's new" screen, and a dialog that shows this version's notes once after an update. Pick where the text comes from:
+
+```kotlin
+WhatsNew(context, WhatsNewSource.Play(packageName))                               // the Play listing's "What's new" box
+WhatsNew(context, WhatsNewSource.Json("https://www.example.com/release-notes.json"))
+WhatsNew(context, WhatsNewSource.GitHubReleases("Trilokia", "pgt"))               // tag + body of each release
+WhatsNew(context, WhatsNewSource.GitHubCommits("Trilokia", "pgt", branch = "main"))  // one line per commit
+```
+
+- **Play** needs nothing hosted: the text you type in Play Console is what users see, in the listing's language. Only the current version is on the page, and Play can change its HTML at any time; when it does, Publishly Kit logs it and keeps showing the last copy it fetched. The page is about 1 MB, fetched once a day at most.
+- **JSON** lists every version ([whatsnew/release-notes.json](whatsnew/release-notes.json) is the template). With `versionCode` in the file, the after-update dialog shows exactly the versions the user skipped. The `JsonUpdates` file is accepted as-is, so one file can feed both.
+- **GitHub** uses the public API, unsigned (60 requests an hour per IP, so keep the daily cache). Release bodies are Markdown and are made plain; merge commits are left out.
+
+```kotlin
+whatsNew.notes()     // List<ReleaseNote>: version, date, notes, url; newest first; cached a day, works offline
+whatsNew.pending()   // the notes to show after an update, or empty (also empty on the first run)
+whatsNew.markSeen()  // after showing them
+```
+
+Compose apps:
+
+```kotlin
+WhatsNewList(whatsNew)    // the list, on its own screen
+WhatsNewDialog(whatsNew)  // the after-update dialog, when it's due; draws nothing otherwise
+```
+
+View apps:
+
+```kotlin
+whatsNew.openList(activity)                                     // the list screen
+lifecycleScope.launch { whatsNew.showDialog(activity, whatsNew.pending()) }
+```
+
+<br clear="right">
+
+## 8. Open source licences
+
+<img src="docs/screenshots/licences-compose.png" width="200" align="right" alt="The licence list">
+
+A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back.
+
+Three steps in the app:
+
+```kotlin
+// 1. Root build.gradle.kts
+plugins {
+    id("com.mikepenz.aboutlibraries.plugin.android") version "14.1.0" apply false
+}
+
+// 2. App build.gradle.kts
+plugins {
+    id("com.mikepenz.aboutlibraries.plugin.android")
+}
+```
+
+```xml
+<!-- 3. app/src/main/res/raw/keep.xml: release builds shrink resources and would drop the list -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/aboutlibraries" />
+```
+
+Then show it:
+
+```kotlin
+OpenSource.open(context)        // View apps: a plain list screen in the app's colours
+OpenSourceScreen()              // Compose apps: AboutLibraries' Material 3 list, on your own screen
+OpenSource.libraries(context)   // the raw data, for your own UI
+```
+
+The plugin needs network on the build machine to fetch SPDX licence texts the first time (cached after). Without the plugin, the screen just says "No licence list in this build".
+
+<br clear="right">
+
+## 9. Theme: one look for every element (`KitTheme`)
+
+<img src="docs/gif/theme-light-dark.gif" width="200" align="right" alt="Light and dark mode">
+
+The Compose elements (`UpdateDialog`, `MoreAppsRow`, `WhatsNewList`, `OpenSourceScreen`...) use the app's `MaterialTheme` as they are. The plain-View screens (More apps, What's new, Open source licences) and the dialogs have their own base theme (`Theme.Publishly Kit`: Material light/dark, edge to edge, a top bar with a back arrow) and are painted in colours that come from, in order:
+
+1. `KitTheme.colors`, when the app sets it. Compose apps put one line inside their theme and both worlds match, light and dark:
+   ```kotlin
+   MaterialTheme(colorScheme = ...) {
+       SyncKitTheme()
+       ...
+   }
+   ```
+2. Otherwise the app's own theme attributes (`android:colorPrimary`, `colorAccent`, `colorBackground`, `textColorPrimary`, plus `colorOnPrimary` / `colorSurface` when the app has Material Components). A View app with a themed toolbar gets Publishly Kit screens with the same toolbar, nothing to do.
+3. Otherwise Material 3's baseline palette, light or dark with the system.
+
+View apps can also set the colours by hand:
+
+```kotlin
+KitTheme.colors = KitColors(
+    topBar = 0xFF1E88E5.toInt(), onTopBar = 0xFFFFFFFF.toInt(), accent = 0xFF1E88E5.toInt(),
+    background = 0xFFFFFFFF.toInt(), text = 0xFF212121.toInt(), textSecondary = 0xFF616161.toInt(),
+    surface = 0xFFFFFFFF.toInt(),
+)
+```
+
+`KitTheme.style` and `KitTheme.dialogStyle` swap the base themes for your own (use one without an action bar; Publishly Kit draws its own top bar). For your own dialogs in the same look: `KitTheme.show(KitTheme.dialog(activity).setTitle(...).setMessage(...))`.
+
+<br clear="right">
+
+## 10. Before you ship
+
+- **Update JSON** hosted and reachable over HTTPS; bump `latestVersionCode` with every release, after the Play rollout reaches everyone (or the dialog sends people to a Play page that still has the old version).
+- **Promo feed** hosted; icons at 192 to 512 px square. The Play listing's icon URL works.
+- **Play Console "What's new"** filled in for every release if the Play source is used, or the release-notes JSON updated.
+- **`keep.xml`** in place, or the licence list disappears from release builds.
+- **Play in-app updates and review** can only be tested from a Play track (internal testing is enough), with an account on that track and a higher versionCode live.
+- **Dark mode**: with Compose, `SyncKitTheme()` sits inside the theme block, so it sees the dark colour scheme.
+
+## 11. The sample app
+
+`./gradlew :sample:installDebug` puts one screen on the phone with every feature behind a button. It reads PGT Free's real update file (which always says "newer", so the update dialog shows), the real Trilokia promo feed (apps already installed on the phone are left out), PGT Free's Play listing for "What's new", and a public GitHub repo's commits.
+
+| Button | Shows |
+| --- | --- |
+| All our apps (Compose list / View screen) | `MoreAppsList` / `promos.openList` |
+| Check Play for updates | `playUpdates.checkNow`, reports the result in a toast |
+| Ask for a review | `ReviewAsk` with a 1-event rule, then `AppReview.ask` |
+| Open source licences (Compose / View screen) | `OpenSourceScreen` / `OpenSource.open` |
+| What's new from Play / from GitHub commits | `WhatsNewList` on each source |
+| What's new (View screen) | `whatsNew.openList` |
+| What's new dialog | `whatsNew.showDialog`, forced, so it shows every time |
+
+The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode to see the theme follow.
+
+## 12. Build and test
+
+```sh
+./gradlew :kit:testDebugUnitTest   # unit tests: real update JSON, the promo template, real Play pages and GitHub answers, the review and what's-new rules
+./gradlew :sample:installDebug        # the sample app
+./gradlew publishToMavenLocal         # both library modules into ~/.m2
+```
+
+Tag the repo (`v1.0.0`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
+
+## License
+
+Apache 2.0, see [LICENSE](LICENSE).

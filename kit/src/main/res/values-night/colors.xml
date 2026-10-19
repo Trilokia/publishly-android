@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kit_primary">#D0BCFF</color>
+    <color name="kit_on_primary">#381E72</color>
+    <color name="kit_background">#141218</color>
+    <color name="kit_surface">#2B2930</color>
+    <color name="kit_text">#E6E0E9</color>
+    <color name="kit_text_secondary">#CAC4D0</color>
+</resources>

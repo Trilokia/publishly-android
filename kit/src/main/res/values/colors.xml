@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The default palette: Material 3's baseline, the same colours a Compose app gets from a plain
+         MaterialTheme { }. Used only when the app's own theme gives nothing. Dark in values-night -->
+    <color name="kit_primary">#6750A4</color>
+    <color name="kit_on_primary">#FFFFFF</color>
+    <color name="kit_background">#FEF7FF</color>
+    <color name="kit_surface">#ECE6F0</color>
+    <color name="kit_text">#1D1B20</color>
+    <color name="kit_text_secondary">#49454F</color>
+</resources>

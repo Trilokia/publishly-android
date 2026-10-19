@@ -1,0 +1,24 @@
+<resources>
+    <!-- The JSON update dialog (JsonUpdates.showDialog) and the "update ready" bar -->
+    <string name="kit_update_title">Update available</string>
+    <string name="kit_update_version">Version %1$s is available.</string>
+    <string name="kit_update_now">Update</string>
+    <string name="kit_update_later">Later</string>
+    <string name="kit_update_ready">An update has been downloaded.</string>
+    <string name="kit_restart">Restart</string>
+    <!-- The open-source licence screen -->
+    <string name="kit_open_source">Open source licences</string>
+    <string name="kit_open_source_empty">No licence list in this build.</string>
+    <!-- Promoting your own apps (AppPromos) -->
+    <string name="kit_more_apps">More apps from us</string>
+    <string name="kit_get">Get</string>
+    <string name="kit_not_now">Not now</string>
+    <string name="kit_featured_title">Try %1$s</string>
+    <!-- The "What's new" list and after-update dialog (WhatsNew) -->
+    <string name="kit_whats_new">What’s new</string>
+    <string name="kit_whats_new_in">What’s new in %1$s</string>
+    <string name="kit_whats_new_empty">Nothing to show yet.</string>
+    <string name="kit_ok">OK</string>
+    <!-- The top bar of the View screens -->
+    <string name="kit_back">Back</string>
+</resources>

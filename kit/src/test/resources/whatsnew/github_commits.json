@@ -1,0 +1,253 @@
+[
+  {
+    "sha": "b499d890b12b49af64bfd15b7fa7c5e376dd4634",
+    "node_id": "C_kwDOASJMdtoAKGI0OTlkODkwYjEyYjQ5YWY2NGJmZDE1YjdmYTdjNWUzNzZkZDQ2MzQ",
+    "commit": {
+      "author": {
+        "name": "Mike Penz",
+        "email": "mikepenz@gmail.com",
+        "date": "2026-10-18T11:47:59Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-18T11:47:59Z"
+      },
+      "message": "Merge pull request #1487 from mikepenz/fix/strip-git-suffix\n\nfix(plugin): strip .git suffix from repository url before fetching remote license",
+      "tree": {
+        "sha": "94c29749a0c7567e4b48b8b6a5afb55e17d21c68",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/trees/94c29749a0c7567e4b48b8b6a5afb55e17d21c68"
+      },
+      "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/commits/b499d890b12b49af64bfd15b7fa7c5e376dd4634",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJq1LHvCRC1aQ7uu5UhlAAAGHUQAK/6iN0CikFyU0XUQR6vLUe/\nt9Cz11NmZaYilmq3o2hSOE+spoFniacAj6bm3Z6o/xoHTtahuMMMMgngOY2c/Abd\nUzmJIx6zAl62h10aOeHHgADnfUmwgm0R9zuiUoobqEsnpRPBqWuzwo28KII/+ieG\nGzX9X+OGMaoh9KcN2enzy/jxr8KQysuCOBBc6KFDM2PqbJBMtWi2uvQi41i6S//G\nVPN+88E5nxrgC2dlTmnmKLPKIM7KOIWt/PykteIm3dj/6rX90YEuzyRRie1IKlWA\n45sH2EdGuWNJMnHap0lphax6fq5d9GZfzkohfIF/MAyY6kobCAnJa/y65Q39Bdxr\n7446/WnhxQ+5VruJHBe13WXYN1T+FRB526ZNF1mtBrIew58xK0BLCHtPe+X3uOvI\n+VSBi+gUhHu0HsB5zAjDqCgN6Uh2VU7tCNe8zeSkQWtoWSBTMv7hLr+iA02ynjx1\n/Fagv0L7BsMNP++iSiGxAmT7EvVJFiMiKXDvT8qSUE/WPHn5SdW1jbsjbEZOTKdA\n0adfz5qilRNHcvrflyGmNsUnDZ1SsthEN5r1QBzXsk4lM+U6c3upGuD9AOdPoAkk\ngQi1yQHh2O07MDzdaueGbFav2DE78IDjMLcHZAE8oFoyUull6rjNadx73TI6BtY8\nV3IoffTtxfxgaT8BIs2y\n=ySqe\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 94c29749a0c7567e4b48b8b6a5afb55e17d21c68\nparent 0031fdba67a22fe42ecfd7110210d6656bc6a399\nparent f771ae47fc711c42c080538fdd0afe575f10045a\nauthor Mike Penz <mikepenz@gmail.com> 1792324079 +0200\ncommitter GitHub <noreply@github.com> 1792324079 +0200\n\nMerge pull request #1487 from mikepenz/fix/strip-git-suffix\n\nfix(plugin): strip .git suffix from repository url before fetching remote license",
+        "verified_at": "2026-10-18T11:47:59Z"
+      }
+    },
+    "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/b499d890b12b49af64bfd15b7fa7c5e376dd4634",
+    "html_url": "https://github.com/mikepenz/AboutLibraries/commit/b499d890b12b49af64bfd15b7fa7c5e376dd4634",
+    "comments_url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/b499d890b12b49af64bfd15b7fa7c5e376dd4634/comments",
+    "author": {
+      "login": "mikepenz",
+      "id": 1476232,
+      "node_id": "MDQ6VXNlcjE0NzYyMzI=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1476232?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mikepenz",
+      "html_url": "https://github.com/mikepenz",
+      "followers_url": "https://api.github.com/users/mikepenz/followers",
+      "following_url": "https://api.github.com/users/mikepenz/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mikepenz/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mikepenz/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mikepenz/subscriptions",
+      "organizations_url": "https://api.github.com/users/mikepenz/orgs",
+      "repos_url": "https://api.github.com/users/mikepenz/repos",
+      "events_url": "https://api.github.com/users/mikepenz/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mikepenz/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "0031fdba67a22fe42ecfd7110210d6656bc6a399",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/0031fdba67a22fe42ecfd7110210d6656bc6a399",
+        "html_url": "https://github.com/mikepenz/AboutLibraries/commit/0031fdba67a22fe42ecfd7110210d6656bc6a399"
+      },
+      {
+        "sha": "f771ae47fc711c42c080538fdd0afe575f10045a",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/f771ae47fc711c42c080538fdd0afe575f10045a",
+        "html_url": "https://github.com/mikepenz/AboutLibraries/commit/f771ae47fc711c42c080538fdd0afe575f10045a"
+      }
+    ]
+  },
+  {
+    "sha": "f771ae47fc711c42c080538fdd0afe575f10045a",
+    "node_id": "C_kwDOASJMdtoAKGY3NzFhZTQ3ZmM3MTFjNDJjMDgwNTM4ZmRkMGFmZTU3NWYxMDA0NWE",
+    "commit": {
+      "author": {
+        "name": "Mike Penz",
+        "email": "opensource@mikepenz.dev",
+        "date": "2026-10-18T11:27:28Z"
+      },
+      "committer": {
+        "name": "Mike Penz",
+        "email": "opensource@mikepenz.dev",
+        "date": "2026-10-18T11:27:28Z"
+      },
+      "message": "fix(plugin): strip .git suffix from repository url before fetching remote license\n\nFixes #1485",
+      "tree": {
+        "sha": "b272596472e9c5c57f01770229e2b86b7c6d8429",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/trees/b272596472e9c5c57f01770229e2b86b7c6d8429"
+      },
+      "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/commits/f771ae47fc711c42c080538fdd0afe575f10045a",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgPEFg1fdzNwhKwWYrnJJY/0kd+H\nbilC4d5vsGHjAtPpwAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\nAAAAQEdlrLBMcKiYIIsuBUfWNFHU0xrY7CtciHQtn02Qcbpeoby+J2TkQAfnnHDiG6jcev\nUna6MGIMVDVWcVbnD4ugI=\n-----END SSH SIGNATURE-----",
+        "payload": "tree b272596472e9c5c57f01770229e2b86b7c6d8429\nparent 1aa09bd4d7c733204319f349176aca2d07b75d93\nauthor Mike Penz <opensource@mikepenz.dev> 1792322848 +0200\ncommitter Mike Penz <opensource@mikepenz.dev> 1792322848 +0200\n\nfix(plugin): strip .git suffix from repository url before fetching remote license\n\nFixes #1485\n",
+        "verified_at": "2026-10-18T11:27:33Z"
+      }
+    },
+    "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/f771ae47fc711c42c080538fdd0afe575f10045a",
+    "html_url": "https://github.com/mikepenz/AboutLibraries/commit/f771ae47fc711c42c080538fdd0afe575f10045a",
+    "comments_url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/f771ae47fc711c42c080538fdd0afe575f10045a/comments",
+    "author": {
+      "login": "mikepenz",
+      "id": 1476232,
+      "node_id": "MDQ6VXNlcjE0NzYyMzI=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1476232?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mikepenz",
+      "html_url": "https://github.com/mikepenz",
+      "followers_url": "https://api.github.com/users/mikepenz/followers",
+      "following_url": "https://api.github.com/users/mikepenz/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mikepenz/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mikepenz/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mikepenz/subscriptions",
+      "organizations_url": "https://api.github.com/users/mikepenz/orgs",
+      "repos_url": "https://api.github.com/users/mikepenz/repos",
+      "events_url": "https://api.github.com/users/mikepenz/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mikepenz/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "mikepenz",
+      "id": 1476232,
+      "node_id": "MDQ6VXNlcjE0NzYyMzI=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1476232?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mikepenz",
+      "html_url": "https://github.com/mikepenz",
+      "followers_url": "https://api.github.com/users/mikepenz/followers",
+      "following_url": "https://api.github.com/users/mikepenz/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mikepenz/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mikepenz/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mikepenz/subscriptions",
+      "organizations_url": "https://api.github.com/users/mikepenz/orgs",
+      "repos_url": "https://api.github.com/users/mikepenz/repos",
+      "events_url": "https://api.github.com/users/mikepenz/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mikepenz/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "1aa09bd4d7c733204319f349176aca2d07b75d93",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/1aa09bd4d7c733204319f349176aca2d07b75d93",
+        "html_url": "https://github.com/mikepenz/AboutLibraries/commit/1aa09bd4d7c733204319f349176aca2d07b75d93"
+      }
+    ]
+  },
+  {
+    "sha": "0031fdba67a22fe42ecfd7110210d6656bc6a399",
+    "node_id": "C_kwDOASJMdtoAKDAwMzFmZGJhNjdhMjJmZTQyZWNmZDcxMTAyMTBkNjY1NmJjNmEzOTk",
+    "commit": {
+      "author": {
+        "name": "renovate-mike[bot]",
+        "email": "274037420+renovate-mike[bot]@users.noreply.github.com",
+        "date": "2026-10-16T01:39:16Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2026-10-16T01:39:16Z"
+      },
+      "message": "chore(deps): update mikepenz/action-junit-report digest to 6ef3fdc (#1486)\n\nCo-authored-by: renovate-mike[bot] <274037420+renovate-mike[bot]@users.noreply.github.com>",
+      "tree": {
+        "sha": "3addf1b144a205f9f7075d531bab72d18c20ab55",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/trees/3addf1b144a205f9f7075d531bab72d18c20ab55"
+      },
+      "url": "https://api.github.com/repos/mikepenz/AboutLibraries/git/commits/0031fdba67a22fe42ecfd7110210d6656bc6a399",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsFcBAABCAAQBQJq0YBECRC1aQ7uu5UhlAAASPkQABfUS4WstOVZikjiKdQVmrOl\nj+Y+1flbH4eukcMivGwQvUf8UVtM4RxhNGduuIJsjclleM1+r4Xr9r668fuL/t8j\nvXshaYoP+iFgZff3B2qwEp7OygBByAdP+JYlEjd7IbyR/YGxxLVHuWU8l++X53gN\nP0PKTmrjziq4w4kaB6nn7VfoPb3IW6niy8jgY55pp/bjuQ0tCn13Ztp6vOwVkdrv\nIX5PnK2G0zmLhIXhQQfMXvKHYFGojpxEobEI5+1J2R2BGNQ6mYyBEPiwSaaCQxl3\nzb/zSi5pwewpQbM6V1yw86XGLop5o/WVjIWD+N8lVod2DsegD3Tq2HOkn5Ei/g2B\niGx5dhC6AYPcZRawiRd8lUhH49SrByV5BfQRlQA6rurbbhUbHuzl2M8QPaKScJcu\n2YwqITMakjSCptgNTQX0pXUMbh6DN2SoUXaugHr5kHOxRKa9n+Z9Y2Q3pL9S8zJB\nro/uwrio8P0Cnd0E6Bs3Lhzg6W8MHucOs8InF1Qj1iQiwRmaOlbYy6CYXyEZ01cj\nS+y6at764ft/VwIwjAC4JwJZfwiXkV6pVcyOkkNsbXeIARHO9KA2EzMPclIGWHTC\nWvpMNKQuFjfmhcaereebX5ap3SlzJgIPwdI5j53iNeg4EH5ryF9u2ubUEcjymmT7\ndf/QfWNK1oUUY7kUyDF0\n=xLnW\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 3addf1b144a205f9f7075d531bab72d18c20ab55\nparent 1aa09bd4d7c733204319f349176aca2d07b75d93\nauthor renovate-mike[bot] <274037420+renovate-mike[bot]@users.noreply.github.com> 1792114756 +0000\ncommitter GitHub <noreply@github.com> 1792114756 +0000\n\nchore(deps): update mikepenz/action-junit-report digest to 6ef3fdc (#1486)\n\nCo-authored-by: renovate-mike[bot] <274037420+renovate-mike[bot]@users.noreply.github.com>",
+        "verified_at": "2026-10-16T01:39:17Z"
+      }
+    },
+    "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/0031fdba67a22fe42ecfd7110210d6656bc6a399",
+    "html_url": "https://github.com/mikepenz/AboutLibraries/commit/0031fdba67a22fe42ecfd7110210d6656bc6a399",
+    "comments_url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/0031fdba67a22fe42ecfd7110210d6656bc6a399/comments",
+    "author": {
+      "login": "renovate-mike[bot]",
+      "id": 274037420,
+      "node_id": "BOT_kgDOEFV6rA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1476232?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/renovate-mike%5Bbot%5D",
+      "html_url": "https://github.com/apps/renovate-mike",
+      "followers_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/renovate-mike%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "1aa09bd4d7c733204319f349176aca2d07b75d93",
+        "url": "https://api.github.com/repos/mikepenz/AboutLibraries/commits/1aa09bd4d7c733204319f349176aca2d07b75d93",
+        "html_url": "https://github.com/mikepenz/AboutLibraries/commit/1aa09bd4d7c733204319f349176aca2d07b75d93"
+      }
+    ]
+  }
+]

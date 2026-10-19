@@ -1,0 +1,6 @@
+# JitPack builds the tagged commit with this JDK (AGP 9 needs 17) and serves
+# com.github.Trilokia.publishly-android:kit:<tag> and :kit-compose:<tag>
+jdk:
+  - openjdk17
+install:
+  - ./gradlew publishToMavenLocal

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AGP 9 shrinks resources in release builds and would drop the licence list the
+     AboutLibraries plugin generates, since nothing references it by id -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/aboutlibraries" />

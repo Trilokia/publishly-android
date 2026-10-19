@@ -1,0 +1,21 @@
+{
+  "releases": [
+    {
+      "version": "0.21.7",
+      "versionCode": 193,
+      "date": "2026-10-08",
+      "notes": [
+        "- New Feature: Added support for Flash Variant",
+        "- Enhanced Support: Fully compatible with the latest 4.6.x version",
+        "- Crash & bug fixes"
+      ],
+      "url": "https://play.google.com/store/apps/details?id=inc.trilokia.pubgfxtool.free"
+    },
+    {
+      "version": "0.21.6",
+      "versionCode": 192,
+      "date": "2026-09-20",
+      "notes": "Compatibility with the 4.5 update."
+    }
+  ]
+}

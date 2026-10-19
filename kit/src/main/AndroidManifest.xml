@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The JSON update check, the promo feed and the what's-new sources need the network; the Play libraries don't -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 11+ hides other apps unless asked. AppPromos needs to see which of your apps are
+         installed (to leave them out) and the Play Store (to open it). Asking for "apps with a
+         launcher icon" covers both without the QUERY_ALL_PACKAGES permission Play frowns on -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application>
+        <!-- The plain-View screens, for apps without Compose. They take the app's theme -->
+        <activity
+            android:name=".oss.OpenSourceActivity"
+            android:exported="false"
+            android:label="@string/kit_open_source" />
+        <activity
+            android:name=".promo.MoreAppsActivity"
+            android:exported="false"
+            android:label="@string/kit_more_apps" />
+        <activity
+            android:name=".whatsnew.WhatsNewActivity"
+            android:exported="false"
+            android:label="@string/kit_whats_new" />
+    </application>
+</manifest>

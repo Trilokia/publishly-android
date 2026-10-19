@@ -1,0 +1,68 @@
+{
+  "apps": [
+    {
+      "package": "inc.trilokia.cardjuggler",
+      "name": "Card Juggler: Bank Card Offers",
+      "tagline": "Share a shopping link, see which of your cards saves most",
+      "icon": "https://play-lh.googleusercontent.com/wuQzpb-Zc7LkdVVG2Douyw35zf3qNTRtE99-VNPVTYsG6flBsf78g__-Yzpyn_hUJQ3sIBvfbJn_m6wQZTYlIQ=s256",
+      "badge": "New",
+      "priority": 100
+    },
+    {
+      "package": "inc.trilokia.pubgfxtool.free",
+      "name": "PGT: GFX, Launcher & Optimizer",
+      "tagline": "Unlock HDR, 90 FPS and smoother graphics in BGMI / PUBG",
+      "icon": "https://play-lh.googleusercontent.com/kztoTZdULS3ARVBzkja-ooJTyuV2oEM9xJTIGrJRBeT_kQnD7QAoo9jTZCA8HOvdMWJEVJEdarZSaR_mOrblHGs=s256",
+      "priority": 90
+    },
+    {
+      "package": "inc.trilokia.pubgfxtool",
+      "name": "PGT+: Pro GFX & Optimizer",
+      "tagline": "The Pro version: no ads, every graphics option, instant apply",
+      "icon": "https://play-lh.googleusercontent.com/G8g3E4fweMvnf0huv4A_rPqCia-LECOhfWvFb74IigKU-nTqqMnSwz5gBmj-zvF_5TPXCtXvne2p2hmE5BYOOg=s256",
+      "badge": "Pro",
+      "priority": 80
+    },
+    {
+      "package": "inc.trilokia.gfxtool.free",
+      "name": "Gamers GLTool with Game Tuner",
+      "tagline": "Game Tuner for any game: FPS, resolution, GPU settings",
+      "icon": "https://play-lh.googleusercontent.com/BeRhUOKHYT5tNGOOjShznfuMAwscMKS7oeVTInARGt8xgAPCpeVBx5y6QG87qw42M8fcz30HcX9ozpIhGrSbBi8=s256",
+      "priority": 70
+    },
+    {
+      "package": "inc.trilokia.gfxtool",
+      "name": "Gamers GLTool Pro",
+      "tagline": "Pro Game Tuner with Vulkan / GL tweaks and no ads",
+      "icon": "https://play-lh.googleusercontent.com/Rdh0WgaSeXOb3V9R2pQ03D9g7UzO4kz0fV9HJ0H9zw01Cd5hscSaXWuT1DyMsLIt6eL0C6xcLG72j8o2A5s8CA=s256",
+      "badge": "Pro",
+      "priority": 60
+    },
+    {
+      "package": "inc.trilokia.addon.graphics.manager",
+      "name": "Graphics Manager : GFX Addon",
+      "tagline": "Per-game graphics profiles for Gamers GLTool",
+      "icon": "https://play-lh.googleusercontent.com/D-sPSDt8Lqhxgb_p1EIGNSriEFbvkRNqI4cdLWMMuM0JI8B5ZY5cDlSXjUeDs4-7lfjqvhwxpU6P0_OoQ0Vz=s256",
+      "priority": 30
+    },
+    {
+      "package": "inc.trilokia.addon.preference.manager",
+      "name": "Preference Manager: Addon",
+      "tagline": "Back up and edit game settings with Gamers GLTool",
+      "icon": "https://play-lh.googleusercontent.com/Bq0Xu-WtRndpGB03SzxB1HBKzRVLTbSHBm31EmM7xhSyKgf1foWGfe5XzuvqDVHojdcjmCuhYCsBZyv6R3xN=s256",
+      "priority": 20
+    },
+    {
+      "package": "inc.trilokia.addon.instant.boost",
+      "name": "Instant Boost : Addon",
+      "tagline": "One-tap boost before a match, for Gamers GLTool",
+      "icon": "https://play-lh.googleusercontent.com/YaG3OftcST-Ck8FYT7Y_zIyh6fNM25r_fFD-5Y5Ure4O6ZMdslNt7zp8Y0zZhH6mORXqIrSmTrUGjBS5O98d-g=s256",
+      "priority": 10
+    }
+  ],
+  "featured": {
+    "package": "inc.trilokia.cardjuggler",
+    "title": "New from Trilokia: Card Juggler",
+    "message": "Share any shopping link to it and see which of your bank cards gives the biggest discount. Free, no login."
+  }
+}
