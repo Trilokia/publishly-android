@@ -4,7 +4,10 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -23,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
@@ -124,6 +131,26 @@ object MoreAppsDefaults {
     )
 }
 
+/** How [MoreAppsList] arranges the apps. */
+enum class MoreAppsLayout {
+    /** One row per app: icon, name, tagline, a Get button. */
+    List,
+    /** Cards in columns: icon on top, name, tagline, Get. */
+    Grid,
+    /** One card per app, with a little air between them. */
+    Cards,
+    /** Icon and name only, dense; the whole row opens the store. */
+    Compact,
+}
+
+/** How [MoreAppsRow] arranges the apps inside its card. */
+enum class MoreAppsRowLayout {
+    /** One line that scrolls sideways. */
+    Scroll,
+    /** As many lines as needed, so every app is visible. */
+    Wrap,
+}
+
 /** Your apps this phone doesn't have yet, from [promos]; empty until the feed is read. */
 @Composable
 fun rememberPromoApps(promos: AppPromos): List<PromoApp> {
@@ -150,77 +177,182 @@ fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, cor
  * at all when there is nothing to show, so it can sit on the home screen unconditionally.
  * [style] changes each element; [item] replaces one app's cell with your own composable.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MoreAppsRow(
     promos: AppPromos,
     modifier: Modifier = Modifier,
     title: String = stringResource(R.string.kit_more_apps),
     style: MoreAppsStyle = MoreAppsDefaults.style(),
+    layout: MoreAppsRowLayout = MoreAppsRowLayout.Scroll,
     item: (@Composable (PromoApp) -> Unit)? = null,
 ) {
     val apps = rememberPromoApps(promos)
     if (apps.isEmpty()) return
     val context = LocalContext.current
+    val cell: @Composable (PromoApp) -> Unit = item ?: { app -> PromoAppCell(app, style) { promos.open(context, app) } }
     Card(modifier.fillMaxWidth(), colors = style.cardColors, shape = style.cardShape) {
         Column(Modifier.padding(vertical = 12.dp)) {
             Text(title, style = style.title, color = style.titleColor, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 8.dp)) {
-                items(apps, key = { it.packageName }) { app ->
-                    if (item != null) {
-                        item(app)
-                    } else {
-                        Column(
-                            modifier = Modifier
-                                .width(style.rowItemWidth)
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { promos.open(context, app) }
-                                .padding(horizontal = 6.dp, vertical = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Box {
-                                PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
-                                app.badge?.let { PromoBadge(it, style, Modifier.align(Alignment.TopEnd)) }
-                            }
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                app.name,
-                                style = style.rowName,
-                                color = style.nameColor,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
+            when (layout) {
+                MoreAppsRowLayout.Scroll -> LazyRow(contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    items(apps, key = { it.packageName }) { app -> cell(app) }
+                }
+                MoreAppsRowLayout.Wrap -> FlowRow(Modifier.padding(horizontal = 8.dp)) {
+                    apps.forEach { app -> cell(app) }
                 }
             }
         }
     }
 }
 
+/** The default cell of [MoreAppsRow]: icon with its badge, the name under it. */
+@Composable
+fun PromoAppCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .width(style.rowItemWidth)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box {
+            PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
+            app.badge?.let { PromoBadge(it, style, Modifier.align(Alignment.TopEnd)) }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            app.name,
+            style = style.rowName,
+            color = style.nameColor,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 /**
- * The full-screen list: icon, name, tagline and a "Get" button per app. Put it under your own top
- * bar. [style] changes each element; [row] replaces the whole entry with your own composable.
+ * The full-screen list of your apps. Put it under your own top bar. [layout] picks the
+ * arrangement, [style] changes each element, [row] replaces the whole entry with your own
+ * composable (in [MoreAppsLayout.Grid] it becomes the cell).
  */
 @Composable
 fun MoreAppsList(
     promos: AppPromos,
     modifier: Modifier = Modifier,
     style: MoreAppsStyle = MoreAppsDefaults.style(),
+    layout: MoreAppsLayout = MoreAppsLayout.List,
+    columns: Int = 2,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     row: (@Composable (PromoApp) -> Unit)? = null,
 ) {
     val apps = rememberPromoApps(promos)
     val context = LocalContext.current
-    LazyColumn(modifier, contentPadding = contentPadding) {
-        items(apps, key = { it.packageName }) { app ->
-            if (row != null) {
-                row(app)
-            } else {
-                PromoAppRow(app, style, onOpen = { promos.open(context, app) })
+    when (layout) {
+        MoreAppsLayout.List -> LazyColumn(modifier, contentPadding = contentPadding) {
+            items(apps, key = { it.packageName }) { app ->
+                if (row != null) row(app) else PromoAppRow(app, style, onOpen = { promos.open(context, app) })
+                if (style.showDivider) HorizontalDivider(color = style.dividerColor)
             }
-            if (style.showDivider) HorizontalDivider(color = style.dividerColor)
+        }
+        MoreAppsLayout.Compact -> LazyColumn(modifier, contentPadding = contentPadding) {
+            items(apps, key = { it.packageName }) { app ->
+                if (row != null) row(app) else PromoAppCompactRow(app, style, onOpen = { promos.open(context, app) })
+                if (style.showDivider) HorizontalDivider(color = style.dividerColor)
+            }
+        }
+        MoreAppsLayout.Cards -> LazyColumn(
+            modifier,
+            contentPadding = PaddingValues(
+                start = 16.dp, end = 16.dp,
+                top = contentPadding.calculateTopPadding() + 8.dp,
+                bottom = contentPadding.calculateBottomPadding() + 8.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(apps, key = { it.packageName }) { app ->
+                if (row != null) row(app) else PromoAppCard(app, style, onOpen = { promos.open(context, app) })
+            }
+        }
+        MoreAppsLayout.Grid -> LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            modifier = modifier,
+            contentPadding = PaddingValues(
+                start = 12.dp, end = 12.dp,
+                top = contentPadding.calculateTopPadding() + 8.dp,
+                bottom = contentPadding.calculateBottomPadding() + 8.dp,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(apps, key = { it.packageName }) { app ->
+                if (row != null) row(app) else PromoAppGridCell(app, style, onOpen = { promos.open(context, app) })
+            }
+        }
+    }
+}
+
+/** The [MoreAppsLayout.Compact] entry: icon and name, nothing else. */
+@Composable
+fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PromoIcon(app.iconUrl, size = 40.dp, corner = style.iconCorner)
+        Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        app.badge?.let { PromoBadge(it, style) }
+    }
+}
+
+/** The [MoreAppsLayout.Cards] entry: one elevated card per app. */
+@Composable
+fun PromoAppCard(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+    ElevatedCard(onClick = onOpen, shape = style.cardShape) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    app.badge?.let {
+                        Spacer(Modifier.width(8.dp))
+                        PromoBadge(it, style)
+                    }
+                }
+                if (app.tagline.isNotBlank()) {
+                    Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+            if (style.showGetButton) FilledTonalButton(onClick = onOpen) { Text(stringResource(R.string.kit_get)) }
+        }
+    }
+}
+
+/** The [MoreAppsLayout.Grid] cell: icon on top, name, tagline, Get. */
+@Composable
+fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+    Card(onClick = onOpen, colors = style.cardColors, shape = style.cardShape) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box {
+                PromoIcon(app.iconUrl, size = 64.dp, corner = style.iconCorner)
+                app.badge?.let { PromoBadge(it, style, Modifier.align(Alignment.TopEnd)) }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(app.name, style = style.listName, color = style.nameColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            if (app.tagline.isNotBlank()) {
+                Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+            }
+            if (style.showGetButton) {
+                Spacer(Modifier.height(10.dp))
+                FilledTonalButton(onClick = onOpen) { Text(stringResource(R.string.kit_get)) }
+            }
         }
     }
 }

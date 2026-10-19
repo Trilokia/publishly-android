@@ -56,8 +56,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import inc.trilokia.publishly.kit.compose.FeaturedPromoDialog
+import inc.trilokia.publishly.kit.compose.MoreAppsLayout
 import inc.trilokia.publishly.kit.compose.MoreAppsList
 import inc.trilokia.publishly.kit.compose.MoreAppsRow
+import inc.trilokia.publishly.kit.compose.OpenSourceLayout
 import inc.trilokia.publishly.kit.compose.OpenSourceScreen
 import inc.trilokia.publishly.kit.compose.ReviewPromptDialog
 import inc.trilokia.publishly.kit.compose.UpdateFlow
@@ -164,9 +166,9 @@ class MainActivity : ComponentActivity() {
                             onWhatsNewView = { whatsNew.openList(this@MainActivity) },
                             onLicencesView = { OpenSource.open(this@MainActivity) },
                         )
-                        Tab.APPS -> MoreAppsList(promos, Modifier.padding(padding))
+                        Tab.APPS -> AppsTab(padding, promos)
                         Tab.NEWS -> WhatsNewScreen(padding, whatsNew, whatsNewGitHub)
-                        Tab.LICENCES -> OpenSourceScreen(Modifier.padding(padding))
+                        Tab.LICENCES -> LicencesTab(padding)
                     }
                 }
             }
@@ -251,21 +253,50 @@ private fun ActionRow(icon: ImageVector, title: String, detail: String, onClick:
     )
 }
 
+/** A row of choices above a tab's content, for the layout switches below. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Choices(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        labels.forEachIndexed { i, label ->
+            SegmentedButton(
+                selected = selected == i,
+                onClick = { onSelect(i) },
+                shape = SegmentedButtonDefaults.itemShape(index = i, count = labels.size),
+            ) { Text(label) }
+        }
+    }
+}
+
+/** The More apps tab, with every MoreAppsLayout to pick from. */
+@Composable
+private fun AppsTab(padding: PaddingValues, promos: AppPromos) {
+    var layout by rememberSaveable { mutableIntStateOf(0) }
+    val layouts = MoreAppsLayout.entries
+    Column(Modifier.padding(padding)) {
+        Choices(layouts.map { it.name }, layout) { layout = it }
+        MoreAppsList(promos, Modifier.fillMaxSize(), layout = layouts[layout])
+    }
+}
+
+/** The Licences tab, with every OpenSourceLayout to pick from. */
+@Composable
+private fun LicencesTab(padding: PaddingValues) {
+    var layout by rememberSaveable { mutableIntStateOf(0) }
+    val layouts = OpenSourceLayout.entries
+    Column(Modifier.padding(padding)) {
+        Choices(listOf("List", "Compact", "Cards", "By licence"), layout) { layout = it }
+        OpenSourceScreen(Modifier.fillMaxSize(), layout = layouts[layout])
+    }
+}
+
 /** The What's new tab: this app's own notes, or a GitHub repo's commits to show that source. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WhatsNewScreen(padding: PaddingValues, own: WhatsNew, gitHub: WhatsNew) {
     var source by rememberSaveable { mutableIntStateOf(0) }
     Column(Modifier.padding(padding)) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            listOf("This app", "GitHub commits").forEachIndexed { i, label ->
-                SegmentedButton(
-                    selected = source == i,
-                    onClick = { source = i },
-                    shape = SegmentedButtonDefaults.itemShape(index = i, count = 2),
-                ) { Text(label) }
-            }
-        }
+        Choices(listOf("This app", "GitHub commits"), source) { source = it }
         WhatsNewList(if (source == 0) own else gitHub, Modifier.fillMaxSize())
     }
 }

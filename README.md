@@ -471,9 +471,24 @@ OpenSourceScreen(
 )
 ```
 
+Layouts change the arrangement rather than the look. Both lists take a `layout`:
+
+```kotlin
+MoreAppsList(promos, layout = MoreAppsLayout.Grid, columns = 2)   // List, Grid, Cards, Compact
+MoreAppsRow(promos, layout = MoreAppsRowLayout.Wrap)               // Scroll (one line) or Wrap (all visible)
+OpenSourceScreen(layout = OpenSourceLayout.ByLicence)              // List, Compact, Cards, ByLicence
+```
+
+<p>
+<img src="docs/screenshots/moreapps-grid.png" width="160" alt="More apps as a grid">
+<img src="docs/screenshots/moreapps-cards.png" width="160" alt="More apps as cards">
+<img src="docs/screenshots/licences-compact.png" width="160" alt="Licences, compact">
+<img src="docs/screenshots/licences-bylicence.png" width="160" alt="Licences grouped by licence">
+</p>
+
 When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app -> MyRow(app) }`, `MoreAppsRow(promos) { app -> MyCell(app) }` (the data classes `ReleaseNote` and `PromoApp` carry everything), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
 
-The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
+The sample's More apps and Licences tabs have a switch for every layout. The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
 
 ## 10. Before you ship
 
