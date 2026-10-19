@@ -1,6 +1,36 @@
-# Publishly Kit
+<p align="center">
+  <img src="docs/icon.svg" width="88" height="88" alt="Publishly Kit">
+</p>
 
-The things every one of my Android apps needs, in one small library: in-app updates, an in-app review prompt with a rule for when to ask, a "More apps from us" promo fed from a JSON file, a "What's new" screen, an open source licence list, and one theme so all of it looks like the app it lives in. Plain Kotlin at the core, so it fits old View/Java apps, plus a Compose module for new ones.
+<h1 align="center">Publishly Kit</h1>
+
+<p align="center">
+  <strong>The in-app side of <a href="https://github.com/Trilokia/publishly">Publishly</a>, for Android.</strong><br>
+  In-app updates, a review prompt that asks you first, your other apps from a JSON feed, a What's new screen and an open source licence list, in one theme.<br>
+  Plain Kotlin at the core for View apps, a Compose module for new ones. No ad SDK, no analytics, no permissions beyond <code>INTERNET</code>.
+</p>
+
+<p align="center">
+  <a href="#1-add-it"><strong>Add it</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#2-quick-start-a-compose-app">Quick start</a>
+  &nbsp;·&nbsp;
+  <a href="#11-the-sample-app">Sample app</a>
+  &nbsp;·&nbsp;
+  <a href="https://publishly.trilokiainc.com">Publishly</a>
+  &nbsp;·&nbsp;
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-65558f" alt="Licence: Apache-2.0"></a>
+  <a href="https://github.com/Trilokia/publishly-android/actions/workflows/ci.yml"><img src="https://github.com/Trilokia/publishly-android/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://jitpack.io/#Trilokia/publishly-android"><img src="https://jitpack.io/v/Trilokia/publishly-android.svg" alt="JitPack"></a>
+  <img src="https://img.shields.io/badge/minSdk-24-3ddc84?logo=android&logoColor=white" alt="minSdk 24">
+  <img src="https://img.shields.io/badge/Kotlin-Compose%20%2B%20Views-7f52ff?logo=kotlin&logoColor=white" alt="Kotlin, Compose and Views">
+  <img src="https://img.shields.io/badge/ad%20SDK-none-2e7d32" alt="No ad SDK">
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-65558f" alt="PRs welcome"></a>
+</p>
 
 <table>
 <tr>

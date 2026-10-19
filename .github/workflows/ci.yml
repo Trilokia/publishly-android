@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    name: Unit tests and sample build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The unit tests run against real data checked into the repo (update JSON, the promo
+      # template, saved Play pages); the sample build proves both library modules and the
+      # AboutLibraries plugin still work together
+      - name: Test the library
+        run: ./gradlew :kit:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Build the sample app
+        run: ./gradlew :sample:assembleDebug --no-daemon --stacktrace
+
+      - name: Publish both modules to the local Maven repo
+        run: ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Keep the test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: kit/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
