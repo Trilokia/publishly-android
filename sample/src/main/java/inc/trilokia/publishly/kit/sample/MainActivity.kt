@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,7 +32,7 @@ import inc.trilokia.publishly.kit.compose.MoreAppsList
 import inc.trilokia.publishly.kit.compose.MoreAppsRow
 import inc.trilokia.publishly.kit.compose.OpenSourceScreen
 import inc.trilokia.publishly.kit.compose.SyncKitTheme
-import inc.trilokia.publishly.kit.compose.UpdateDialog
+import inc.trilokia.publishly.kit.compose.UpdateFlow
 import inc.trilokia.publishly.kit.compose.UpdateReadyBar
 import inc.trilokia.publishly.kit.compose.WhatsNewDialog
 import inc.trilokia.publishly.kit.compose.WhatsNewList
@@ -41,29 +40,26 @@ import inc.trilokia.publishly.kit.oss.OpenSource
 import inc.trilokia.publishly.kit.promo.AppPromos
 import inc.trilokia.publishly.kit.review.AppReview
 import inc.trilokia.publishly.kit.review.ReviewAsk
-import inc.trilokia.publishly.kit.update.JsonUpdates
-import inc.trilokia.publishly.kit.update.PlayUpdates
-import inc.trilokia.publishly.kit.update.UpdateInfo
+import inc.trilokia.publishly.kit.update.Updates
 import inc.trilokia.publishly.kit.whatsnew.WhatsNew
 import inc.trilokia.publishly.kit.whatsnew.WhatsNewSource
 import kotlinx.coroutines.launch
 
 /** Every feature of the library on one screen. */
 class MainActivity : ComponentActivity() {
-    private lateinit var playUpdates: PlayUpdates
+    private lateinit var updates: Updates
 
     private enum class Page { HOME, LICENCES, MORE_APPS, WHATS_NEW_PLAY, WHATS_NEW_GITHUB }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Must be built before onStart (it registers an activity-result launcher)
-        playUpdates = PlayUpdates(this)
-        playUpdates.checkQuietly()
+        // The whole update flow: Play first, the JSON file when Play can't answer. Built here because
+        // it registers an activity-result launcher, which must happen before onStart.
+        // The PGT apps read their JSON from trilokiainc.com; it says 193 > 1, so the dialog shows
+        updates = Updates(this, jsonUrl = "https://www.trilokiainc.com/oldfree-update.json")
 
         val reviewAsk = ReviewAsk(this, minEvents = 1, minAgeMs = 0L)
-        // The PGT apps read their JSON from trilokiainc.com; this one says 193 > 1, so the dialog shows
-        val jsonUpdates = JsonUpdates(this, "https://www.trilokiainc.com/oldfree-update.json")
         // Your own apps: the server copy when it exists, the bundled template (promo/apps.json) until then
         val promos = AppPromos(
             this,
@@ -82,20 +78,15 @@ class MainActivity : ComponentActivity() {
                 var page by remember { mutableStateOf(Page.HOME) }
                 BackHandler(enabled = page != Page.HOME) { page = Page.HOME }
 
-                var updateChecked by remember { mutableStateOf(false) }
-                var pendingUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
-                LaunchedEffect(Unit) {
-                    pendingUpdate = jsonUpdates.check()
-                    updateChecked = true
-                }
-                pendingUpdate?.let { UpdateDialog(it, onDismiss = { pendingUpdate = null }) }
-                // The featured-app dialog waits its turn behind the update dialog
-                if (updateChecked && pendingUpdate == null) FeaturedPromoDialog(promos)
+                // Dialogs take turns: the update flow first, then the featured app
+                var updatesSettled by remember { mutableStateOf(false) }
+                UpdateFlow(updates) { updatesSettled = true }
+                if (updatesSettled) FeaturedPromoDialog(promos)
                 // Shows once after a versionCode change (never on the first run); nothing otherwise
                 WhatsNewDialog(whatsNewPlay)
 
                 Scaffold(
-                    bottomBar = { UpdateReadyBar(playUpdates) },
+                    bottomBar = { UpdateReadyBar(updates) },
                 ) { padding ->
                     when (page) {
                         Page.LICENCES -> OpenSourceScreen(Modifier.padding(padding))
@@ -113,7 +104,7 @@ class MainActivity : ComponentActivity() {
                             onWhatsNewGitHub = { page = Page.WHATS_NEW_GITHUB },
                             onWhatsNewView = { whatsNewPlay.openList(this@MainActivity) },
                             onWhatsNewDialog = { whatsNewPlay.showDialog(this@MainActivity, whatsNewPlay.notes()) },
-                            onCheckUpdate = { playUpdates.checkNow { toast("Play update: $it") } },
+                            onCheckUpdate = { updates.play.checkNow { toast("Play update: $it") } },
                             onReview = {
                                 reviewAsk.recordEvent()
                                 if (!reviewAsk.askIfDue(this@MainActivity)) {

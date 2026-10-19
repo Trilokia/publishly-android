@@ -9,7 +9,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -20,6 +25,31 @@ import inc.trilokia.publishly.kit.R
 import inc.trilokia.publishly.kit.update.JsonUpdates
 import inc.trilokia.publishly.kit.update.PlayUpdates
 import inc.trilokia.publishly.kit.update.UpdateInfo
+import inc.trilokia.publishly.kit.update.Updates
+
+/**
+ * The whole update flow for a Compose app: runs [Updates.check] once (Play first, the JSON file
+ * when Play can't answer) and shows the update dialog when the JSON file is the one with news.
+ * Play's side needs nothing here beyond [UpdateReadyBar]. [onSettled] fires once there is nothing
+ * (more) to show: at once for Play outcomes, after "Later" for the dialog. Use it to queue the
+ * next start-up dialog (the featured app, what's new) behind this one.
+ */
+@Composable
+fun UpdateFlow(updates: Updates, cancelable: Boolean = true, onSettled: () -> Unit = {}) {
+    val settled by rememberUpdatedState(onSettled)
+    var pending by remember(updates) { mutableStateOf<UpdateInfo?>(null) }
+    LaunchedEffect(updates) {
+        val outcome = updates.check()
+        if (outcome is Updates.Outcome.JsonUpdate) pending = outcome.info else settled()
+    }
+    pending?.let { info ->
+        UpdateDialog(info, cancelable = cancelable, onDismiss = { pending = null; settled() })
+    }
+}
+
+/** [UpdateReadyBar] for the combined flow: the same bar, fed by `updates.play`. */
+@Composable
+fun UpdateReadyBar(updates: Updates, modifier: Modifier = Modifier) = UpdateReadyBar(updates.play, modifier)
 
 /**
  * "An update has been downloaded. Restart": shows itself once [PlayUpdates.downloaded] turns

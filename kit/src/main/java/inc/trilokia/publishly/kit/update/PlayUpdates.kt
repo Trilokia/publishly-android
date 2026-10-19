@@ -16,6 +16,8 @@ import com.google.android.play.core.install.model.UpdateAvailability
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * In-app updates through the phone's own Play Store. Two ways in:
@@ -75,17 +77,32 @@ class PlayUpdates(activity: ComponentActivity) {
      * newer version, and pick up an interrupted full-screen update. Says nothing.
      */
     fun checkQuietly() {
-        manager.appUpdateInfo.addOnSuccessListener { info ->
-            when {
-                // Downloaded on an earlier run and still waiting (the listener never saw it)
-                info.installStatus() == InstallStatus.DOWNLOADED -> _downloaded.value = true
-                // An immediate update the user left half-way: Play wants it finished
-                info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS ->
-                    start(info, AppUpdateType.IMMEDIATE)
-                info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
-                    info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> start(info, AppUpdateType.FLEXIBLE)
-            }
+        manager.appUpdateInfo.addOnSuccessListener { info -> quiet(info) }
+    }
+
+    /**
+     * [checkQuietly] as a suspend call that says what happened, so a caller can fall back to
+     * something else on [Result.FAILED] (see [Updates]). Never throws.
+     */
+    suspend fun check(): Result = suspendCancellableCoroutine { cont ->
+        manager.appUpdateInfo
+            .addOnSuccessListener { info -> if (cont.isActive) cont.resume(quiet(info)) }
+            .addOnFailureListener { if (cont.isActive) cont.resume(Result.FAILED) }
+    }
+
+    private fun quiet(info: AppUpdateInfo): Result = when {
+        // Downloaded on an earlier run and still waiting (the listener never saw it)
+        info.installStatus() == InstallStatus.DOWNLOADED -> {
+            _downloaded.value = true
+            Result.DOWNLOADED
         }
+        // An immediate update the user left half-way: Play wants it finished
+        info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS ->
+            if (start(info, AppUpdateType.IMMEDIATE)) Result.FLOW_STARTED else Result.FAILED
+        info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+            info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) ->
+            if (start(info, AppUpdateType.FLEXIBLE)) Result.FLOW_STARTED else Result.FAILED
+        else -> Result.UP_TO_DATE
     }
 
     /** The Settings row. [result] gets one answer, on the main thread, for a snackbar or toast. */

@@ -10,12 +10,12 @@ The things every one of my Android apps needs, in one small library: in-app upda
 </tr>
 </table>
 
-Recorded from the sample app on an API 34 emulator. Stills of every screen are in [docs/screenshots](docs/screenshots).
+Recorded from the sample app on an API 33 emulator. Stills of every screen are in [docs/screenshots](docs/screenshots).
 
 | Module | What's in it |
 | --- | --- |
-| `kit` | `PlayUpdates`, `JsonUpdates`, `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateReadyBar()`, `UpdateDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
+| `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdateReadyBar()`, `UpdateDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
 | `sample` | One screen that uses everything, with the template promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
@@ -49,7 +49,7 @@ dependencyResolutionManagement {
 }
 ```
 
-In the app module (replace `publishly-android` with this repository's name on GitHub and `<tag>` with a release tag such as `v1.0.0`):
+In the app module (replace `<tag>` with a release tag such as `v1.0.0`):
 
 ```kotlin
 dependencies {
@@ -68,17 +68,14 @@ Everything wired into one activity. Each piece is optional; delete what you don'
 
 ```kotlin
 class MainActivity : ComponentActivity() {
-    private lateinit var playUpdates: PlayUpdates
+    private lateinit var updates: Updates
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Play in-app updates. Build it here: it registers an activity-result launcher
-        playUpdates = PlayUpdates(this)
-        playUpdates.checkQuietly()
-
-        // Your own JSON update file (works for side-loaded builds and other stores)
-        val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
+        // Updates: Play first, your JSON file when Play can't answer (side-loads, other stores,
+        // no Play). Build it here: it registers an activity-result launcher
+        updates = Updates(this, jsonUrl = "https://www.example.com/update.json")
         // Your other apps, from a JSON feed on your server
         val promos = AppPromos(this, url = "https://www.example.com/apps.json")
         // "What's new", from this app's Play listing
@@ -90,18 +87,13 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()) {
                 SyncKitTheme()   // the View screens and dialogs take these colours too
 
-                // Dialogs, in turn: update first, then the featured app, then what's new
-                var updateChecked by remember { mutableStateOf(false) }
-                var pendingUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
-                LaunchedEffect(Unit) {
-                    pendingUpdate = jsonUpdates.check()
-                    updateChecked = true
-                }
-                pendingUpdate?.let { UpdateDialog(it, onDismiss = { pendingUpdate = null }) }
-                if (updateChecked && pendingUpdate == null) FeaturedPromoDialog(promos)
+                // Dialogs, in turn: the update flow first, then the featured app, then what's new
+                var updatesSettled by remember { mutableStateOf(false) }
+                UpdateFlow(updates) { updatesSettled = true }
+                if (updatesSettled) FeaturedPromoDialog(promos)
                 WhatsNewDialog(whatsNew)
 
-                Scaffold(bottomBar = { UpdateReadyBar(playUpdates) }) { padding ->
+                Scaffold(bottomBar = { UpdateReadyBar(updates) }) { padding ->
                     Column(Modifier.padding(padding)) {
                         MoreAppsRow(promos)                      // draws nothing when there is nothing to show
                         Button(onClick = {
@@ -123,28 +115,26 @@ class MainActivity : ComponentActivity() {
 The same features without Compose. Every screen has a plain-View version that takes the app's colours (see [Theme](#9-theme-one-look-for-every-element-kittheme)).
 
 ```kotlin
-class MainActivity : AppCompatActivity() {   // ComponentActivity or AppCompatActivity, for PlayUpdates
-    private lateinit var playUpdates: PlayUpdates
+class MainActivity : AppCompatActivity() {   // ComponentActivity or AppCompatActivity, for Play updates
+    private lateinit var updates: Updates
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        playUpdates = PlayUpdates(this)
-        playUpdates.checkQuietly()
+        updates = Updates(this, jsonUrl = "https://www.example.com/update.json")
         lifecycleScope.launch {
-            playUpdates.downloaded.collect { if (it) showRestartSnackbar { playUpdates.complete() } }
+            updates.downloaded.collect { if (it) showRestartSnackbar { updates.complete() } }
         }
 
-        val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
         val promos = AppPromos(this, url = "https://www.example.com/apps.json")
         val whatsNew = WhatsNew(this, WhatsNewSource.Play(packageName))
         val reviewAsk = ReviewAsk(this)
 
         lifecycleScope.launch {
-            val update = jsonUpdates.check()
-            if (update != null) {
-                jsonUpdates.showDialog(this@MainActivity, update)
+            val outcome = updates.check()
+            if (outcome is Updates.Outcome.JsonUpdate) {
+                updates.showDialog(this@MainActivity, outcome.info)
             } else {
                 promos.featured()?.let { promos.showFeaturedDialog(this@MainActivity, it) }
                 whatsNew.showDialog(this@MainActivity, whatsNew.pending())
@@ -167,6 +157,46 @@ Java apps can call the same classes; the `suspend` functions (`check()`, `featur
 
 ## 4. In-app updates
 
+Two sources, one flow. Play's in-app update is the smooth one (background download, the user never leaves the app), so it goes first wherever it can work. It can't work for side-loads, other stores, debug builds or phones without Play, and it fails whenever Play has a bad day; all of those fall back to a small JSON file on your server. `Updates` runs the whole thing:
+
+```mermaid
+flowchart TD
+    start([App start]) --> fromPlay{Installed from Play?}
+    fromPlay -- "no: side-load, other store, debug build" --> fetch
+    fromPlay -- yes --> askPlay[Ask the Play Store]
+    askPlay -- "newer version" --> download[Play downloads in the background]
+    download --> bar[Restart bar]
+    bar -- Restart --> installed([New version installed])
+    askPlay -- "already downloaded" --> bar
+    askPlay -- "up to date" --> nothing([Nothing to show])
+    askPlay -- "failed: no Play, no network, Play error" --> fetch
+    fetch[Fetch your update.json] -- "newer versionCode" --> dialog[Update dialog]
+    dialog -- Update --> open([Opens the url: Play page or APK])
+    dialog -- Later --> nothing
+    fetch -- "same version" --> nothing
+    fetch -- "can't fetch" --> cache{Yesterday's answer, still newer?}
+    cache -- yes --> dialog
+    cache -- no --> nothing
+```
+
+```kotlin
+updates = Updates(this, jsonUrl = "https://www.example.com/update.json")   // in onCreate; jsonUrl may be null
+
+// Compose: the dialog when the JSON file has news, nothing otherwise; onSettled queues the next dialog
+UpdateFlow(updates) { /* settled */ }
+Scaffold(bottomBar = { UpdateReadyBar(updates) }) { ... }
+
+// View: one suspend call tells you what happened
+lifecycleScope.launch {
+    when (val outcome = updates.check()) {
+        is Updates.Outcome.JsonUpdate -> updates.showDialog(this@MainActivity, outcome.info)
+        else -> { }   // PlayDownloading, PlayDownloaded, UpToDate, Nothing: Play handles its own
+    }
+}
+```
+
+One deliberate rule: when Play answers "up to date", the JSON file is **not** consulted, even if it names a newer version. A staged rollout may not have reached this phone yet, and a dialog sending the user to a Play page that still shows the old version would be a dead end. `updates.play` and `updates.json` are the two halves, for the details below.
+
 <img src="docs/screenshots/update-dialog.png" width="200" align="right" alt="The JSON update dialog">
 
 ### Through Play (`PlayUpdates`)
@@ -174,8 +204,8 @@ Java apps can call the same classes; the `suspend` functions (`check()`, `featur
 Play's own in-app update flow: the new version downloads in the background and the app asks for a restart.
 
 ```kotlin
-playUpdates = PlayUpdates(this)   // in onCreate, before the activity starts
-playUpdates.checkQuietly()        // flexible flow: downloads when Play has a newer version
+val playUpdates = updates.play     // or PlayUpdates(this) on its own, in onCreate
+playUpdates.checkQuietly()         // flexible flow: downloads when Play has a newer version
 ```
 
 - `playUpdates.downloaded` is a `StateFlow<Boolean>`; it turns true when the download lands. Show "Restart" and call `playUpdates.complete()`. Compose apps drop `UpdateReadyBar(playUpdates)` into the layout and get both.
@@ -197,7 +227,7 @@ The check the PGT apps have used for years: a small file on your server says whi
 ```
 
 ```kotlin
-val jsonUpdates = JsonUpdates(this, "https://www.example.com/update.json")
+val jsonUpdates = updates.json!!   // or JsonUpdates(this, "https://www.example.com/update.json") on its own
 lifecycleScope.launch {
     jsonUpdates.check()?.let { info -> jsonUpdates.showDialog(this@MainActivity, info) }
 }
@@ -361,7 +391,7 @@ The plugin needs network on the build machine to fetch SPDX licence texts the fi
 
 <img src="docs/gif/theme-light-dark.gif" width="200" align="right" alt="Light and dark mode">
 
-The Compose elements (`UpdateDialog`, `MoreAppsRow`, `WhatsNewList`, `OpenSourceScreen`...) use the app's `MaterialTheme` as they are. The plain-View screens (More apps, What's new, Open source licences) and the dialogs have their own base theme (`Theme.Publishly Kit`: Material light/dark, edge to edge, a top bar with a back arrow) and are painted in colours that come from, in order:
+The Compose elements (`UpdateDialog`, `MoreAppsRow`, `WhatsNewList`, `OpenSourceScreen`...) use the app's `MaterialTheme` as they are. The plain-View screens (More apps, What's new, Open source licences) and the dialogs have their own base theme (`Theme.PublishlyKit`: Material light/dark, edge to edge, a top bar with a back arrow) and are painted in colours that come from, in order:
 
 1. `KitTheme.colors`, when the app sets it. Compose apps put one line inside their theme and both worlds match, light and dark:
    ```kotlin
