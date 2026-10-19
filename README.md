@@ -242,7 +242,7 @@ lifecycleScope.launch {
 
 ## 5. In-app review
 
-<img src="docs/screenshots/review-prompt.png" width="200" align="right" alt="The Enjoying the app? prompt">
+<img src="docs/screenshots/review-stars-low.png" width="200" align="right" alt="The Enjoying the app? prompt: two stars picked, Send feedback offered">
 
 Play's rating sheet is the goal, but it has two catches: Play shows it only a few times per user and never says whether it did, and it needs the app to come from Play. So the flow asks **you** first, with five stars that pop in; happy users go on to Play, unhappy ones get to tell you by mail instead of telling the whole store:
 
