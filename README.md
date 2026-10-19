@@ -15,7 +15,7 @@ Recorded from the sample app on an API 33 emulator. Stills of every screen are i
 | Module | What's in it |
 | --- | --- |
 | `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdateReadyBar()`, `UpdateDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdateReadyBar()`, `UpdateDialog()`, `ReviewPromptDialog()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
 | `sample` | One screen that uses everything, with the template promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
@@ -239,11 +239,23 @@ lifecycleScope.launch {
 
 ## 5. In-app review
 
-```kotlin
-AppReview.ask(activity)   // Play's rating sheet; fire and forget
+<img src="docs/screenshots/review-prompt.png" width="200" align="right" alt="The Enjoying the app? prompt">
+
+Play's rating sheet is the goal, but it has two catches: Play shows it only a few times per user and never says whether it did, and it needs the app to come from Play. So the flow asks **you** first, then Play, and falls back to the Play listing:
+
+```mermaid
+flowchart TD
+    moment([A good moment: settings applied, a result found]) --> due{Due?}
+    due -- no --> quiet([Nothing])
+    due -- yes --> prompt["Our own prompt: Enjoying the app?"]
+    prompt -- "Rate it" --> sheet[Ask Play for its review sheet]
+    prompt -- "Not now" --> rest([Rests 60 days])
+    prompt -- "Don't ask again" --> stop([Never again on this phone])
+    sheet -- "Play gives it" --> inapp([Rating sheet inside the app])
+    sheet -- "Play refuses: side-load, no Play, error" --> store([Opens the app's Play listing])
 ```
 
-Play shows the sheet only a few times per user and never tells you whether it did, so the asks have to be rationed. `ReviewAsk` counts "good moments" and says when the next ask is due:
+"Due" is the rule that rations the asks, so Play is only bothered for people who just said yes:
 
 | Rule | Default | Constructor parameter |
 | --- | --- | --- |
@@ -255,12 +267,20 @@ Play shows the sheet only a few times per user and never tells you whether it di
 ```kotlin
 val reviewAsk = ReviewAsk(context)
 
-// After the app has just been useful (settings applied, a result found, a file saved...)
+// Compose: the prompt lives in the composition and shows itself when asked
+ReviewPromptDialog(reviewAsk)
+// ...after the app has just been useful (settings applied, a result found, a file saved...)
+reviewAsk.recordEvent()
+reviewAsk.requestIfDue()
+
+// View: the same prompt as a plain dialog in the Kit theme
 reviewAsk.recordEvent()
 reviewAsk.askIfDue(activity)   // true when it asked
 ```
 
-`reviewAsk.stop()` ends the asks on this phone for good, for a "Don't ask again" setting.
+`reviewAsk.requestPrompt()` raises the prompt regardless of the rule, for a "Rate this app" row in Settings. The halves on their own: `AppReview.askOrOpenStore(activity)` (Play's sheet, or the listing), `AppReview.ask(activity)` (just the sheet), `AppReview.openStore(context)` (just the listing). `reviewAsk.stop()` ends the asks on this phone for good. The one case nobody can detect: Play accepting the request and then quietly skipping the sheet; the fallback covers Play refusing outright.
+
+<br clear="right">
 
 ## 6. Your own apps' promo (`AppPromos`)
 
@@ -434,7 +454,7 @@ KitTheme.colors = KitColors(
 | --- | --- |
 | All our apps (Compose list / View screen) | `MoreAppsList` / `promos.openList` |
 | Check Play for updates | `playUpdates.checkNow`, reports the result in a toast |
-| Ask for a review | `ReviewAsk` with a 1-event rule, then `AppReview.ask` |
+| Ask for a review | `ReviewAsk`, always due here: our prompt, then Play's sheet or the Play listing |
 | Open source licences (Compose / View screen) | `OpenSourceScreen` / `OpenSource.open` |
 | What's new from Play / from GitHub commits | `WhatsNewList` on each source |
 | What's new (View screen) | `whatsNew.openList` |

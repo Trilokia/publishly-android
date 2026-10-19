@@ -9,6 +9,12 @@
     <!-- The open-source licence screen -->
     <string name="kit_open_source">Open source licences</string>
     <string name="kit_open_source_empty">No licence list in this build.</string>
+    <!-- Our own "Enjoying the app?" prompt, before Play's review sheet (ReviewAsk) -->
+    <string name="kit_review_title">Enjoying %1$s?</string>
+    <string name="kit_review_message">A rating on Google Play helps a lot, and takes a few seconds.</string>
+    <string name="kit_review_rate">Rate it</string>
+    <string name="kit_review_later">Not now</string>
+    <string name="kit_review_never">Don’t ask again</string>
     <!-- Promoting your own apps (AppPromos) -->
     <string name="kit_more_apps">More apps from us</string>
     <string name="kit_get">Get</string>

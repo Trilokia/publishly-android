@@ -31,6 +31,7 @@ import inc.trilokia.publishly.kit.compose.FeaturedPromoDialog
 import inc.trilokia.publishly.kit.compose.MoreAppsList
 import inc.trilokia.publishly.kit.compose.MoreAppsRow
 import inc.trilokia.publishly.kit.compose.OpenSourceScreen
+import inc.trilokia.publishly.kit.compose.ReviewPromptDialog
 import inc.trilokia.publishly.kit.compose.SyncKitTheme
 import inc.trilokia.publishly.kit.compose.UpdateFlow
 import inc.trilokia.publishly.kit.compose.UpdateReadyBar
@@ -38,7 +39,6 @@ import inc.trilokia.publishly.kit.compose.WhatsNewDialog
 import inc.trilokia.publishly.kit.compose.WhatsNewList
 import inc.trilokia.publishly.kit.oss.OpenSource
 import inc.trilokia.publishly.kit.promo.AppPromos
-import inc.trilokia.publishly.kit.review.AppReview
 import inc.trilokia.publishly.kit.review.ReviewAsk
 import inc.trilokia.publishly.kit.update.Updates
 import inc.trilokia.publishly.kit.whatsnew.WhatsNew
@@ -59,7 +59,8 @@ class MainActivity : ComponentActivity() {
         // The PGT apps read their JSON from trilokiainc.com; it says 193 > 1, so the dialog shows
         updates = Updates(this, jsonUrl = "https://www.trilokiainc.com/oldfree-update.json")
 
-        val reviewAsk = ReviewAsk(this, minEvents = 1, minAgeMs = 0L)
+        // Always due, so the prompt shows on every tap (a real app keeps the defaults)
+        val reviewAsk = ReviewAsk(this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE)
         // Your own apps: the server copy when it exists, the bundled template (promo/apps.json) until then
         val promos = AppPromos(
             this,
@@ -84,6 +85,8 @@ class MainActivity : ComponentActivity() {
                 if (updatesSettled) FeaturedPromoDialog(promos)
                 // Shows once after a versionCode change (never on the first run); nothing otherwise
                 WhatsNewDialog(whatsNewPlay)
+                // Our own "Enjoying the app?" prompt; shows itself after reviewAsk.requestIfDue()
+                ReviewPromptDialog(reviewAsk)
 
                 Scaffold(
                     bottomBar = { UpdateReadyBar(updates) },
@@ -107,10 +110,7 @@ class MainActivity : ComponentActivity() {
                             onCheckUpdate = { updates.play.checkNow { toast("Play update: $it") } },
                             onReview = {
                                 reviewAsk.recordEvent()
-                                if (!reviewAsk.askIfDue(this@MainActivity)) {
-                                    toast("Not due; asking anyway for the demo")
-                                    AppReview.ask(this@MainActivity)
-                                }
+                                reviewAsk.requestIfDue()
                             },
                         )
                     }

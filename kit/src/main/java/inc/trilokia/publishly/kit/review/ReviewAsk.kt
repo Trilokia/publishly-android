@@ -2,12 +2,28 @@ package inc.trilokia.publishly.kit.review
 
 import android.app.Activity
 import android.content.Context
+import inc.trilokia.publishly.kit.KitTheme
+import inc.trilokia.publishly.kit.R
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.TimeUnit
 
 /**
- * When to ask for a Play rating. Counts "good moments" (an app launch, a settings apply, a saving
- * found: whatever means the app has just been useful) and says when the next [AppReview.ask] is
- * due. Play shows the sheet only a few times per user anyway, so the app must ration asks itself:
+ * When and how to ask for a Play rating. The flow:
+ *
+ * ```
+ * a good moment ─► due? ─ yes ─► our own prompt "Enjoying the app?"
+ *                                  ├─ Rate it ─► Play's review sheet ─ Play refuses ─► the app's Play listing
+ *                                  ├─ Not now ─► rests [restMs]
+ *                                  └─ Don't ask again ─► never again on this phone
+ * ```
+ *
+ * Asking ourselves first costs nothing and protects Play's quota: Play shows its sheet only a few
+ * times per user, so it should only be asked for people who have just said yes.
+ *
+ * "Good moments" (an app launch, a settings apply, a saving found: whatever means the app has just
+ * been useful) are counted with [recordEvent]; the next ask is due:
  *
  * - not before [minEvents] good moments (the first could be luck),
  * - not before the app has been on the phone for [minAgeMs],
@@ -24,13 +40,21 @@ class ReviewAsk(
     private val restMs: Long = TimeUnit.DAYS.toMillis(60),
     private val maxAsks: Int = 4,
 ) {
-    private val prefs = context.applicationContext.getSharedPreferences("kit_review_ask", Context.MODE_PRIVATE)
+    /** What the user said to our own prompt. */
+    enum class Answer { RATE, LATER, NEVER }
+
+    private val app = context.applicationContext
+    private val prefs = app.getSharedPreferences("kit_review_ask", Context.MODE_PRIVATE)
+    private val _prompt = MutableStateFlow(false)
+
+    /** True while our own prompt should be on screen. Compose apps render `ReviewPromptDialog(reviewAsk)`. */
+    val prompt: StateFlow<Boolean> = _prompt.asStateFlow()
 
     init {
         if (prefs.getLong(KEY_FIRST_SEEN, 0L) == 0L) prefs.edit().putLong(KEY_FIRST_SEEN, System.currentTimeMillis()).apply()
     }
 
-    /** One more good moment. Call it, then [askIfDue] (or [due]) right after. */
+    /** One more good moment. Call it, then [askIfDue] / [requestIfDue] right after. */
     fun recordEvent() {
         prefs.edit().putInt(KEY_EVENTS, prefs.getInt(KEY_EVENTS, 0) + 1).apply()
     }
@@ -48,15 +72,57 @@ class ReviewAsk(
         maxAsks = maxAsks,
     )
 
-    /** [AppReview.ask] when [due], and count the ask. Returns whether it asked. */
-    fun askIfDue(activity: Activity): Boolean {
+    /**
+     * View apps: when [due], shows our own prompt as a plain dialog ([showPrompt]) and counts the
+     * ask. With [ownPromptFirst] false it skips the prompt and goes straight to Play's sheet (or
+     * the listing). Returns whether it asked.
+     */
+    fun askIfDue(activity: Activity, ownPromptFirst: Boolean = true): Boolean {
         if (!due()) return false
         markAsked()
-        AppReview.ask(activity)
+        if (ownPromptFirst) showPrompt(activity) else AppReview.askOrOpenStore(activity)
         return true
     }
 
-    /** Record an ask made some other way (your own "Rate us" dialog, say). */
+    /** Compose apps: when [due], raises [prompt] (shown by `ReviewPromptDialog`) and counts the ask. */
+    fun requestIfDue(): Boolean {
+        if (!due()) return false
+        markAsked()
+        _prompt.value = true
+        return true
+    }
+
+    /** Raise the prompt regardless of the rule: a "Rate this app" row in Settings. */
+    fun requestPrompt() {
+        _prompt.value = true
+    }
+
+    /** The user answered the prompt. [activity] is where Play's sheet draws; null falls back to the listing. */
+    fun answer(activity: Activity?, answer: Answer) {
+        _prompt.value = false
+        when (answer) {
+            Answer.RATE -> if (activity != null) AppReview.askOrOpenStore(activity) else AppReview.openStore(app)
+            Answer.LATER -> {}
+            Answer.NEVER -> stop()
+        }
+    }
+
+    /** Our own prompt as a plain dialog in the Kit theme, for View apps. */
+    fun showPrompt(activity: Activity) {
+        if (activity.isFinishing) return
+        _prompt.value = true
+        val name = app.applicationInfo.loadLabel(app.packageManager)
+        val builder = KitTheme.dialog(activity)
+            .setTitle(app.getString(R.string.kit_review_title, name))
+            .setMessage(R.string.kit_review_message)
+            .setPositiveButton(R.string.kit_review_rate) { _, _ -> answer(activity, Answer.RATE) }
+            .setNegativeButton(R.string.kit_review_later) { _, _ -> answer(activity, Answer.LATER) }
+            .setNeutralButton(R.string.kit_review_never) { _, _ -> answer(activity, Answer.NEVER) }
+            .setOnCancelListener { answer(activity, Answer.LATER) }
+        KitTheme.show(builder)
+    }
+
+    /** Record an ask made some other way. */
     fun markAsked(now: Long = System.currentTimeMillis()) {
         prefs.edit()
             .putInt(KEY_ASKS, prefs.getInt(KEY_ASKS, 0) + 1)
