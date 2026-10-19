@@ -1,0 +1,21 @@
+{
+  "releases": [
+    {
+      "version": "1.1",
+      "versionCode": 2,
+      "date": "2026-10-19",
+      "notes": [
+        "This is sample text; your release notes go here.",
+        "• Faster start-up",
+        "• A dark theme",
+        "• Fixes for the problems you reported"
+      ]
+    },
+    {
+      "version": "1.0",
+      "versionCode": 1,
+      "date": "2026-09-01",
+      "notes": "First release."
+    }
+  ]
+}

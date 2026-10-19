@@ -43,22 +43,27 @@ data class UpdateInfo(
  * Use with [PlayUpdates] or on its own: call [check] from a coroutine in `onResume`; when it
  * returns something, show [showDialog] (or your own Compose dialog). The last answer is kept in
  * SharedPreferences, so a phone that is offline today still sees the dialog it saw yesterday.
+ * [bundledJson] (the same format, shipped in `assets/`) is the answer when the server has never
+ * been reached, or the only answer when [url] is null.
  */
-class JsonUpdates(context: Context, private val url: String) {
+class JsonUpdates(context: Context, private val url: String?, private val bundledJson: String? = null) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("kit_json_updates", Context.MODE_PRIVATE)
 
     /** The newer version, or null when this build is the latest (or nothing is known). */
     suspend fun check(): UpdateInfo? {
         val current = currentVersionCode(app)
-        val fetched = runCatching { fetch(url) }
-            .onFailure { Log.w(TAG, "Update check failed: $it") }
-            .getOrNull()
+        val fetched = url?.let { u ->
+            runCatching { fetch(u) }
+                .onFailure { Log.w(TAG, "Update check failed: $it") }
+                .getOrNull()
+        }
         if (fetched != null) {
             remember(fetched)
             return fetched.takeIf { it.versionCode > current }
         }
-        return remembered()?.takeIf { it.versionCode > current }
+        val known = remembered() ?: bundledJson?.let { runCatching { parse(it) }.getOrNull() }
+        return known?.takeIf { it.versionCode > current }
     }
 
     /** The plain-dialog version of the update prompt, for View-based apps. */

@@ -4,7 +4,7 @@ The things every one of my Android apps needs, in one small library: in-app upda
 
 <table>
 <tr>
-<td align="center"><img src="docs/gif/overview.gif" width="230" alt="The sample app: update dialog, More apps, What's new, licences"><br><sub>Update dialog, More apps, What's new, licences</sub></td>
+<td align="center"><img src="docs/gif/overview.gif" width="230" alt="The sample app: update dialog, More apps, review prompt, What's new, licences"><br><sub>Update dialog, More apps, review prompt, What's new, licences</sub></td>
 <td align="center"><img src="docs/gif/whats-new.gif" width="230" alt="What's new from the Play listing, from GitHub commits, the View screen and the dialog"><br><sub>What's new: Play listing, GitHub commits, View screen, dialog</sub></td>
 <td align="center"><img src="docs/gif/theme-light-dark.gif" width="230" alt="The View screens and dialogs follow the app's Compose theme in light and dark mode"><br><sub>One theme for Compose and View screens, light and dark</sub></td>
 </tr>
@@ -181,6 +181,7 @@ flowchart TD
 
 ```kotlin
 updates = Updates(this, jsonUrl = "https://www.example.com/update.json")   // in onCreate; jsonUrl may be null
+// bundledJson = assets.open("update.json")...: a copy shipped in the app, used until the server has answered once
 
 // Compose: the dialog when the JSON file has news, nothing otherwise; onSettled queues the next dialog
 UpdateFlow(updates) { /* settled */ }
@@ -339,6 +340,7 @@ A "What's new" screen, and a dialog that shows this version's notes once after a
 ```kotlin
 WhatsNew(context, WhatsNewSource.Play(packageName))                               // the Play listing's "What's new" box
 WhatsNew(context, WhatsNewSource.Json("https://www.example.com/release-notes.json"))
+WhatsNew(context, WhatsNewSource.Bundled(assets.open("release-notes.json").bufferedReader().readText()))   // shipped in the app
 WhatsNew(context, WhatsNewSource.GitHubReleases("Trilokia", "pgt"))               // tag + body of each release
 WhatsNew(context, WhatsNewSource.GitHubCommits("Trilokia", "pgt", branch = "main"))  // one line per commit
 ```
@@ -448,7 +450,7 @@ KitTheme.colors = KitColors(
 
 ## 11. The sample app
 
-`./gradlew :sample:installDebug` puts one screen on the phone with every feature behind a button. It reads PGT Free's real update file (which always says "newer", so the update dialog shows), the real Trilokia promo feed (apps already installed on the phone are left out), PGT Free's Play listing for "What's new", and a public GitHub repo's commits.
+`./gradlew :sample:installDebug` puts "Sample App" on the phone: one screen with every feature behind a button. It needs no server of its own: the update file and the release notes are sample text shipped in `sample/src/main/assets/` (the update file offers 1.2 to this 1.1 build, so the update dialog shows), the promo feed is the real Trilokia one (apps already installed on the phone are left out), and the second "What's new" list reads a public GitHub repo's commits.
 
 | Button | Shows |
 | --- | --- |
@@ -456,7 +458,7 @@ KitTheme.colors = KitColors(
 | Check Play for updates | `playUpdates.checkNow`, reports the result in a toast |
 | Ask for a review | `ReviewAsk`, always due here: our prompt, then Play's sheet or the Play listing |
 | Open source licences (Compose / View screen) | `OpenSourceScreen` / `OpenSource.open` |
-| What's new from Play / from GitHub commits | `WhatsNewList` on each source |
+| What's new / from GitHub commits | `WhatsNewList` on the bundled notes and on a GitHub repo |
 | What's new (View screen) | `whatsNew.openList` |
 | What's new dialog | `whatsNew.showDialog`, forced, so it shows every time |
 

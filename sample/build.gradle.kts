@@ -15,8 +15,9 @@ android {
         applicationId = "inc.trilokia.publishly.kit.sample"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // 1.1 so the bundled release notes have a current entry; assets/update.json offers 1.2
+        versionCode = 2
+        versionName = "1.1"
     }
 
     buildTypes {

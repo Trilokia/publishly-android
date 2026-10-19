@@ -5,7 +5,7 @@
         android:name=".SampleApp"
         android:allowBackup="true"
         android:icon="@android:drawable/sym_def_app_icon"
-        android:label="Publishly Kit sample"
+        android:label="Sample App"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 

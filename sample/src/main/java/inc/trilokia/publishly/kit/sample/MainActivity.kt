@@ -55,9 +55,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // The whole update flow: Play first, the JSON file when Play can't answer. Built here because
-        // it registers an activity-result launcher, which must happen before onStart.
-        // The PGT apps read their JSON from trilokiainc.com; it says 193 > 1, so the dialog shows
-        updates = Updates(this, jsonUrl = "https://www.trilokiainc.com/oldfree-update.json")
+        // it registers an activity-result launcher, which must happen before onStart. The sample
+        // has no server, so it ships a sample update.json in assets/ (it offers 1.2 to this 1.1 build, so the
+        // dialog shows); a real app passes jsonUrl = "https://your-site/update.json"
+        updates = Updates(this, jsonUrl = null, bundledJson = asset("update.json"))
 
         // Always due, so the prompt shows on every tap (a real app keeps the defaults)
         val reviewAsk = ReviewAsk(this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE)
@@ -65,11 +66,12 @@ class MainActivity : ComponentActivity() {
         val promos = AppPromos(
             this,
             url = "https://www.trilokiainc.com/apps.json",
-            bundledJson = assets.open("apps.json").bufferedReader().use { it.readText() },
+            bundledJson = asset("apps.json"),
         )
 
-        // "What's new": PGT Free's Play listing (this sample isn't on Play), and a GitHub repo's commits
-        val whatsNewPlay = WhatsNew(this, WhatsNewSource.Play("inc.trilokia.pubgfxtool.free"))
+        // "What's new": sample release notes shipped in assets/ (a real app uses WhatsNewSource.Play(packageName)
+        // or a JSON file on its server), plus a public GitHub repo's commits to show that source
+        val whatsNew = WhatsNew(this, WhatsNewSource.Bundled(asset("release-notes.json")))
         val whatsNewGitHub = WhatsNew(this, WhatsNewSource.GitHubCommits("mikepenz", "AboutLibraries"))
 
         setContent {
@@ -84,7 +86,7 @@ class MainActivity : ComponentActivity() {
                 UpdateFlow(updates) { updatesSettled = true }
                 if (updatesSettled) FeaturedPromoDialog(promos)
                 // Shows once after a versionCode change (never on the first run); nothing otherwise
-                WhatsNewDialog(whatsNewPlay)
+                WhatsNewDialog(whatsNew)
                 // Our own "Enjoying the app?" prompt; shows itself after reviewAsk.requestIfDue()
                 ReviewPromptDialog(reviewAsk)
 
@@ -94,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     when (page) {
                         Page.LICENCES -> OpenSourceScreen(Modifier.padding(padding))
                         Page.MORE_APPS -> MoreAppsList(promos, Modifier.padding(padding))
-                        Page.WHATS_NEW_PLAY -> WhatsNewList(whatsNewPlay, Modifier.padding(padding))
+                        Page.WHATS_NEW_PLAY -> WhatsNewList(whatsNew, Modifier.padding(padding))
                         Page.WHATS_NEW_GITHUB -> WhatsNewList(whatsNewGitHub, Modifier.padding(padding))
                         Page.HOME -> Demo(
                             modifier = Modifier.padding(padding),
@@ -105,8 +107,9 @@ class MainActivity : ComponentActivity() {
                             onLicencesView = { OpenSource.open(this@MainActivity) },
                             onWhatsNewPlay = { page = Page.WHATS_NEW_PLAY },
                             onWhatsNewGitHub = { page = Page.WHATS_NEW_GITHUB },
-                            onWhatsNewView = { whatsNewPlay.openList(this@MainActivity) },
-                            onWhatsNewDialog = { whatsNewPlay.showDialog(this@MainActivity, whatsNewPlay.notes()) },
+                            onWhatsNewView = { whatsNew.openList(this@MainActivity) },
+                            // Forced for the demo: this version's notes (after a real update, pending() picks them)
+                            onWhatsNewDialog = { whatsNew.showDialog(this@MainActivity, whatsNew.notes().take(1)) },
                             onCheckUpdate = { updates.play.checkNow { toast("Play update: $it") } },
                             onReview = {
                                 reviewAsk.recordEvent()
@@ -120,6 +123,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
+
+    private fun asset(name: String): String = assets.open(name).bufferedReader().use { it.readText() }
 }
 
 @Composable
@@ -142,7 +147,8 @@ private fun Demo(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Publishly Kit sample", style = MaterialTheme.typography.headlineSmall)
+        Text("Sample App", style = MaterialTheme.typography.headlineSmall)
+        Text("Every Publishly Kit feature behind a button", style = MaterialTheme.typography.bodyMedium)
         // The own-apps row: from the JSON feed, minus whatever this phone already has
         MoreAppsRow(promos, Modifier.fillMaxWidth())
         Button(onClick = onMoreAppsCompose) { Text("All our apps (Compose list)") }
@@ -151,7 +157,7 @@ private fun Demo(
         Button(onClick = onReview) { Text("Ask for a review") }
         Button(onClick = onLicencesCompose) { Text("Open source licences (Compose)") }
         Button(onClick = onLicencesView) { Text("Open source licences (View screen)") }
-        Button(onClick = onWhatsNewPlay) { Text("What's new from Play (Compose list)") }
+        Button(onClick = onWhatsNewPlay) { Text("What's new (Compose list)") }
         Button(onClick = onWhatsNewGitHub) { Text("What's new from GitHub commits (Compose list)") }
         Button(onClick = onWhatsNewView) { Text("What's new (View screen)") }
         Button(onClick = { scope.launch { onWhatsNewDialog() } }) { Text("What's new dialog (forced, for the demo)") }

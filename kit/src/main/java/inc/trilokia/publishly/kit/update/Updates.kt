@@ -29,10 +29,11 @@ import kotlinx.coroutines.flow.StateFlow
  * sends them to a Play page still showing the old version is a dead end.
  *
  * Build it in `onCreate` (it holds a [PlayUpdates]). [jsonUrl] may be null for an app that is
- * only ever on Play. [check] is safe to call on every start: Play's own sheet rations itself,
- * and the JSON dialog is yours to show.
+ * only ever on Play; [bundledJson] is a copy of the update file shipped in `assets/`, used until
+ * the server has answered once (see [JsonUpdates]). [check] is safe to call on every start:
+ * Play's own sheet rations itself, and the JSON dialog is yours to show.
  */
-class Updates(activity: ComponentActivity, jsonUrl: String?) {
+class Updates(activity: ComponentActivity, jsonUrl: String?, bundledJson: String? = null) {
     /** What [check] found. Only [JsonUpdate] needs the app to show something. */
     sealed class Outcome {
         /** Play is downloading the new version; the Restart bar appears when it lands. */
@@ -52,7 +53,7 @@ class Updates(activity: ComponentActivity, jsonUrl: String?) {
 
     private val app: Context = activity.applicationContext
     val play = PlayUpdates(activity)
-    val json: JsonUpdates? = jsonUrl?.let { JsonUpdates(activity, it) }
+    val json: JsonUpdates? = if (jsonUrl != null || bundledJson != null) JsonUpdates(activity, jsonUrl, bundledJson) else null
 
     /** Play's download has landed; offer "Restart" and call [complete]. Same as `play.downloaded`. */
     val downloaded: StateFlow<Boolean> get() = play.downloaded

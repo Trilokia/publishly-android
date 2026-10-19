@@ -57,6 +57,16 @@ sealed class WhatsNewSource : Serializable {
         override fun parse(body: String) = parseJson(body)
     }
 
+    /**
+     * The same JSON, shipped inside the app (read it from `assets/`). Nothing is fetched: the
+     * notes are whatever this build carries, which is enough for an app that writes its release
+     * notes at build time, and for samples and tests.
+     */
+    data class Bundled(val json: String) : WhatsNewSource() {
+        override val url get() = "bundled://release-notes"
+        override fun parse(body: String) = parseJson(body)
+    }
+
     data class GitHubReleases(
         val owner: String,
         val repo: String,

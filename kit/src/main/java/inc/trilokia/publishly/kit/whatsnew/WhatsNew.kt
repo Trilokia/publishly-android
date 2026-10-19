@@ -119,6 +119,7 @@ class WhatsNew(
 
         /** GETs [source]'s URL with its headers. Throws when the server can't be reached or says no. */
         suspend fun fetch(source: WhatsNewSource): String = withContext(Dispatchers.IO) {
+            if (source is WhatsNewSource.Bundled) return@withContext source.json
             val conn = URL(source.url).openConnection() as HttpURLConnection
             try {
                 conn.connectTimeout = 15_000
