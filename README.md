@@ -183,8 +183,10 @@ flowchart TD
 updates = Updates(this, jsonUrl = "https://www.example.com/update.json")   // in onCreate; jsonUrl may be null
 // bundledJson = assets.open("update.json")...: a copy shipped in the app, used until the server has answered once
 
-// Compose: the dialog when the JSON file has news, nothing otherwise; onSettled queues the next dialog
+// Compose: the prompt when the JSON file has news, nothing otherwise; onSettled queues the next dialog
 UpdateFlow(updates) { /* settled */ }
+UpdateFlow(updates, presentation = Presentation.BottomSheet)                               // or a sheet...
+UpdateFlow(updates, presentation = Presentation.Snackbar, snackbarHostState = snackbarHost) // ...or a snackbar
 Scaffold(bottomBar = { UpdateReadyBar(updates) }) { ... }
 
 // View: one suspend call tells you what happened
@@ -269,7 +271,9 @@ flowchart TD
 val reviewAsk = ReviewAsk(context)
 
 // Compose: the prompt lives in the composition and shows itself when asked
-ReviewPromptDialog(reviewAsk)
+ReviewPromptDialog(reviewAsk)                                                                // a dialog...
+ReviewPrompt(reviewAsk, presentation = Presentation.BottomSheet)                             // ...a sheet...
+ReviewPrompt(reviewAsk, presentation = Presentation.Snackbar, snackbarHostState = snackbarHost) // ...or a snackbar: "Rate it" only, putting it away is "Not now"
 // ...after the app has just been useful (settings applied, a result found, a file saved...)
 reviewAsk.recordEvent()
 reviewAsk.requestIfDue()
@@ -471,6 +475,15 @@ OpenSourceScreen(
 )
 ```
 
+Prompts can be a dialog, a bottom sheet or a snackbar: `UpdateFlow`, `UpdatePrompt` and `ReviewPrompt` take a `presentation` (`Presentation.Dialog`, `BottomSheet`, `Snackbar`; the snackbar needs your Scaffold's `SnackbarHostState`, and falls back to a dialog without one).
+
+<p>
+<img src="docs/screenshots/update-sheet.png" width="160" alt="The update prompt as a bottom sheet">
+<img src="docs/screenshots/review-sheet.png" width="160" alt="The review prompt as a bottom sheet">
+<img src="docs/screenshots/update-snackbar.png" width="160" alt="The update prompt as a snackbar">
+<img src="docs/screenshots/review-snackbar.png" width="160" alt="The review prompt as a snackbar">
+</p>
+
 Layouts change the arrangement rather than the look. Both lists take a `layout`:
 
 ```kotlin
@@ -507,7 +520,9 @@ The sample's More apps and Licences tabs have a switch for every layout. The pla
 | --- | --- |
 | Home: "More apps from us" row | `MoreAppsRow` |
 | Home: Check Play for updates | `updates.play.checkNow`, reports the result in a toast |
-| Home: Rate this app | `ReviewAsk`, always due here: our prompt, then Play's sheet or the Play listing |
+| Home: Prompt style | Dialog, bottom sheet or snackbar for the two prompts below |
+| Home: Update available | `UpdatePrompt` with the bundled update file, in the chosen style |
+| Home: Rate this app | `ReviewAsk`, always due here: our prompt (in the chosen style), then Play's sheet or the Play listing |
 | Home: This version's notes | `whatsNew.showDialog`, forced, so it shows every time |
 | Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
 | More apps tab | `MoreAppsList` |

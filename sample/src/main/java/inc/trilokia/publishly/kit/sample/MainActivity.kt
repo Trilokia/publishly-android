@@ -41,6 +41,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -61,14 +63,17 @@ import inc.trilokia.publishly.kit.compose.MoreAppsList
 import inc.trilokia.publishly.kit.compose.MoreAppsRow
 import inc.trilokia.publishly.kit.compose.OpenSourceLayout
 import inc.trilokia.publishly.kit.compose.OpenSourceScreen
-import inc.trilokia.publishly.kit.compose.ReviewPromptDialog
+import inc.trilokia.publishly.kit.compose.Presentation
+import inc.trilokia.publishly.kit.compose.ReviewPrompt
 import inc.trilokia.publishly.kit.compose.UpdateFlow
+import inc.trilokia.publishly.kit.compose.UpdatePrompt
 import inc.trilokia.publishly.kit.compose.UpdateReadyBar
 import inc.trilokia.publishly.kit.compose.WhatsNewDialog
 import inc.trilokia.publishly.kit.compose.WhatsNewList
 import inc.trilokia.publishly.kit.oss.OpenSource
 import inc.trilokia.publishly.kit.promo.AppPromos
 import inc.trilokia.publishly.kit.review.ReviewAsk
+import inc.trilokia.publishly.kit.update.UpdateInfo
 import inc.trilokia.publishly.kit.update.Updates
 import inc.trilokia.publishly.kit.whatsnew.WhatsNew
 import inc.trilokia.publishly.kit.whatsnew.WhatsNewSource
@@ -118,21 +123,30 @@ class MainActivity : ComponentActivity() {
                 var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
                 BackHandler(enabled = tab != Tab.HOME) { tab = Tab.HOME }
                 val scope = rememberCoroutineScope()
+                val snackbarHost = remember { SnackbarHostState() }
+                // Dialog, bottom sheet or snackbar, for the update and review prompts (the Home switch)
+                var presentation by rememberSaveable { mutableIntStateOf(0) }
+                val style = Presentation.entries[presentation]
 
                 // Dialogs take turns: the update flow first, then the featured app
                 var updatesSettled by remember { mutableStateOf(false) }
-                UpdateFlow(updates) { updatesSettled = true }
+                UpdateFlow(updates, presentation = style, snackbarHostState = snackbarHost) { updatesSettled = true }
                 if (updatesSettled) FeaturedPromoDialog(promos)
                 // Shows once after a versionCode change (never on the first run); nothing otherwise
                 WhatsNewDialog(whatsNew)
                 // Our own "Enjoying the app?" prompt; shows itself after reviewAsk.requestIfDue()
-                ReviewPromptDialog(reviewAsk)
+                ReviewPrompt(reviewAsk, presentation = style, snackbarHostState = snackbarHost)
+                // The update prompt again, on demand, to show the chosen style
+                var forcedUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
+                forcedUpdate?.let { UpdatePrompt(it, style, snackbarHostState = snackbarHost, onDismiss = { forcedUpdate = null }) }
 
                 Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHost) },
                     topBar = {
                         CenterAlignedTopAppBar(
                             title = { Text(if (tab == Tab.HOME) "Sample App" else tab.label) },
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                            // Opaque, so the list doesn't show through the title when it scrolls under the bar
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                         )
                     },
                     bottomBar = {
@@ -155,6 +169,9 @@ class MainActivity : ComponentActivity() {
                         Tab.HOME -> HomeScreen(
                             padding = padding,
                             promos = promos,
+                            presentation = presentation,
+                            onPresentation = { presentation = it },
+                            onUpdatePrompt = { scope.launch { forcedUpdate = updates.json?.check() } },
                             onCheckUpdate = { updates.play.checkNow { toast("Play update: $it") } },
                             onReview = {
                                 reviewAsk.recordEvent()
@@ -184,6 +201,9 @@ class MainActivity : ComponentActivity() {
 private fun HomeScreen(
     padding: PaddingValues,
     promos: AppPromos,
+    presentation: Int,
+    onPresentation: (Int) -> Unit,
+    onUpdatePrompt: () -> Unit,
     onCheckUpdate: () -> Unit,
     onReview: () -> Unit,
     onWhatsNewDialog: () -> Unit,
@@ -203,7 +223,14 @@ private fun HomeScreen(
         // The own-apps row: from the JSON feed, minus whatever this phone already has
         item { MoreAppsRow(promos, Modifier.fillMaxWidth()) }
         item {
+            Section("Prompt style") {
+                Choices(listOf("Dialog", "Sheet", "Snackbar"), presentation, onPresentation)
+            }
+        }
+        item {
             Section("Updates and reviews") {
+                ActionRow(Icons.Outlined.SystemUpdate, "Update available", "The JSON update prompt, in the style above", onUpdatePrompt)
+                HorizontalDivider()
                 ActionRow(Icons.Outlined.SystemUpdate, "Check Play for updates", "Play's in-app update; your JSON file when Play can't answer", onCheckUpdate)
                 HorizontalDivider()
                 ActionRow(Icons.Outlined.StarRate, "Rate this app", "Our prompt first, then Play's sheet or the Play listing", onReview)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,12 +31,19 @@ import inc.trilokia.publishly.kit.update.Updates
 /**
  * The whole update flow for a Compose app: runs [Updates.check] once (Play first, the JSON file
  * when Play can't answer) and shows the update dialog when the JSON file is the one with news.
- * Play's side needs nothing here beyond [UpdateReadyBar]. [onSettled] fires once there is nothing
+ * Play's side needs nothing here beyond [UpdateReadyBar]. [presentation] picks a dialog, a bottom sheet
+ * or a snackbar (which needs the app's [snackbarHostState]). [onSettled] fires once there is nothing
  * (more) to show: at once for Play outcomes, after "Later" for the dialog. Use it to queue the
  * next start-up dialog (the featured app, what's new) behind this one.
  */
 @Composable
-fun UpdateFlow(updates: Updates, cancelable: Boolean = true, onSettled: () -> Unit = {}) {
+fun UpdateFlow(
+    updates: Updates,
+    cancelable: Boolean = true,
+    presentation: Presentation = Presentation.Dialog,
+    snackbarHostState: SnackbarHostState? = null,
+    onSettled: () -> Unit = {},
+) {
     val settled by rememberUpdatedState(onSettled)
     var pending by remember(updates) { mutableStateOf<UpdateInfo?>(null) }
     LaunchedEffect(updates) {
@@ -43,7 +51,7 @@ fun UpdateFlow(updates: Updates, cancelable: Boolean = true, onSettled: () -> Un
         if (outcome is Updates.Outcome.JsonUpdate) pending = outcome.info else settled()
     }
     pending?.let { info ->
-        UpdateDialog(info, cancelable = cancelable, onDismiss = { pending = null; settled() })
+        UpdatePrompt(info, presentation, cancelable, snackbarHostState, onDismiss = { pending = null; settled() })
     }
 }
 
