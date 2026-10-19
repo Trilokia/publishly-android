@@ -106,7 +106,11 @@ class MainActivity : ComponentActivity() {
         updates = Updates(this, jsonUrl = null, bundledJson = asset("update.json"))
 
         // Always due, so the prompt shows on every tap (a real app keeps the defaults)
-        val reviewAsk = ReviewAsk(this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE)
+        // Low ratings (1 to 3 stars) go to this address instead of Play; put your real one here
+        val reviewAsk = ReviewAsk(
+            this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE,
+            feedbackEmail = "feedback@example.com",
+        )
         // Your own apps: the server copy when it exists, the bundled template (promo/apps.json) until then
         val promos = AppPromos(
             this,

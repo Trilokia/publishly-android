@@ -244,14 +244,15 @@ lifecycleScope.launch {
 
 <img src="docs/screenshots/review-prompt.png" width="200" align="right" alt="The Enjoying the app? prompt">
 
-Play's rating sheet is the goal, but it has two catches: Play shows it only a few times per user and never says whether it did, and it needs the app to come from Play. So the flow asks **you** first, then Play, and falls back to the Play listing:
+Play's rating sheet is the goal, but it has two catches: Play shows it only a few times per user and never says whether it did, and it needs the app to come from Play. So the flow asks **you** first, with five stars that pop in; happy users go on to Play, unhappy ones get to tell you by mail instead of telling the whole store:
 
 ```mermaid
 flowchart TD
     moment([A good moment: settings applied, a result found]) --> due{Due?}
     due -- no --> quiet([Nothing])
-    due -- yes --> prompt["Our own prompt: Enjoying the app?"]
-    prompt -- "Rate it" --> sheet[Ask Play for its review sheet]
+    due -- yes --> prompt["Our own prompt: Enjoying the app? ★★★★★"]
+    prompt -- "4 or 5 stars" --> sheet[Ask Play for its review sheet]
+    prompt -- "1 to 3 stars" --> mail([Mail app: feedback to you, rating and device filled in])
     prompt -- "Not now" --> rest([Rests 60 days])
     prompt -- "Don't ask again" --> stop([Never again on this phone])
     sheet -- "Play gives it" --> inapp([Rating sheet inside the app])
@@ -268,7 +269,12 @@ flowchart TD
 | Asks per phone, ever | 4 | `maxAsks` |
 
 ```kotlin
-val reviewAsk = ReviewAsk(context)
+val reviewAsk = ReviewAsk(
+    context,
+    feedbackEmail = "you@example.com",            // where 1 to 3 stars go; null = a low rating just rests
+    feedbackSubject = "Feedback on My App",       // optional; the default names the app and its version
+    goodRating = 4,                                // the lowest star count that goes to Play
+)
 
 // Compose: the prompt lives in the composition and shows itself when asked
 ReviewPromptDialog(reviewAsk)                                                                // a dialog...
@@ -282,6 +288,8 @@ reviewAsk.requestIfDue()
 reviewAsk.recordEvent()
 reviewAsk.askIfDue(activity)   // true when it asked
 ```
+
+The feedback mail opens in the user's mail app with your address, the subject, and a body that starts with "My rating: 2 / 5" and ends with the app's version and the phone model, so you know what you're reading. `reviewAsk.lastRating` keeps the last rating given. `StarRating(rating, onRating)` is the animated star row on its own, for your own screens.
 
 `reviewAsk.requestPrompt()` raises the prompt regardless of the rule, for a "Rate this app" row in Settings. The halves on their own: `AppReview.askOrOpenStore(activity)` (Play's sheet, or the listing), `AppReview.ask(activity)` (just the sheet), `AppReview.openStore(context)` (just the listing). `reviewAsk.stop()` ends the asks on this phone for good. The one case nobody can detect: Play accepting the request and then quietly skipping the sheet; the fallback covers Play refusing outright.
 

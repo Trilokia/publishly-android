@@ -19,7 +19,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -150,19 +153,19 @@ fun ReviewPromptSheet(reviewAsk: ReviewAsk) {
     if (!visible) return
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
-    val appName = remember(context) { context.applicationInfo.loadLabel(context.packageManager).toString() }
+    var stars by rememberSaveable { mutableIntStateOf(0) }
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = { reviewAsk.answer(activity, Answer.LATER) }, sheetState = state) {
         Column(
             Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.kit_review_title, appName), style = MaterialTheme.typography.titleLarge)
-            Text(stringResource(R.string.kit_review_message), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.kit_review_title, reviewAsk.appName), style = MaterialTheme.typography.titleLarge)
+            ReviewPromptBody(reviewAsk, stars) { stars = it }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
                 TextButton(onClick = { reviewAsk.answer(activity, Answer.NEVER) }) { Text(stringResource(R.string.kit_review_never)) }
                 TextButton(onClick = { reviewAsk.answer(activity, Answer.LATER) }) { Text(stringResource(R.string.kit_review_later)) }
-                Button(onClick = { reviewAsk.answer(activity, Answer.RATE) }) { Text(stringResource(R.string.kit_review_rate)) }
+                ReviewConfirmButton(reviewAsk, stars, filled = true) { reviewAsk.answerRating(activity, stars) }
             }
         }
     }
