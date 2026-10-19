@@ -30,7 +30,7 @@ Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
 6. [Your own apps' promo](#6-your-own-apps-promo-apppromos)
 7. [What's new](#7-whats-new-whatsnew)
 8. [Open source licences](#8-open-source-licences)
-9. [Theme](#9-theme-one-look-for-every-element-kittheme)
+9. [Theme](#9-theme-one-look-for-every-element-kittheme), [customising each element](#customise-each-element)
 10. [Before you ship](#10-before-you-ship)
 11. [The sample app](#11-the-sample-app)
 12. [Build and test](#12-build-and-test)
@@ -438,6 +438,42 @@ KitTheme.colors = KitColors(
 `KitTheme.style` and `KitTheme.dialogStyle` swap the base themes for your own (use one without an action bar; Publishly Kit draws its own top bar). For your own dialogs in the same look: `KitTheme.show(KitTheme.dialog(activity).setTitle(...).setMessage(...))`.
 
 <br clear="right">
+
+### Customise each element
+
+Every Compose list takes a `style` built from a `…Defaults.style(...)` function, the way Material's own components take `colors`. Each argument defaults to the app's MaterialTheme, so you change one thing and keep the rest:
+
+```kotlin
+// What's new: version, date, notes, spacing, dividers, the empty message
+WhatsNewList(
+    whatsNew,
+    style = WhatsNewDefaults.style(
+        version = MaterialTheme.typography.titleLarge,
+        date = MaterialTheme.typography.labelSmall,
+        dateColor = MaterialTheme.colorScheme.outline,
+        notes = MaterialTheme.typography.bodyLarge,
+        showDivider = false,
+    ),
+)
+
+// More apps: card, icons, names, taglines, badges, the Get button
+MoreAppsRow(promos, style = MoreAppsDefaults.style(rowIconSize = 64.dp, iconCorner = 0.5f))
+MoreAppsList(promos, style = MoreAppsDefaults.style(showGetButton = false, badgeContainer = MaterialTheme.colorScheme.primary))
+
+// Open source licences: name, version, author, badges, what to show at all
+OpenSourceScreen(
+    style = OpenSourceDefaults.style(
+        name = MaterialTheme.typography.titleMedium,
+        licenceBadge = MaterialTheme.colorScheme.secondaryContainer,
+        showVersion = false,
+        showDivider = true,
+    ),
+)
+```
+
+When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app -> MyRow(app) }`, `MoreAppsRow(promos) { app -> MyCell(app) }` (the data classes `ReleaseNote` and `PromoApp` carry everything), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
+
+The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
 
 ## 10. Before you ship
 
