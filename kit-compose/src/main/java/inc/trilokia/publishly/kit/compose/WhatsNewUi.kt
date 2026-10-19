@@ -1,8 +1,10 @@
 package inc.trilokia.publishly.kit.compose
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -57,8 +59,14 @@ fun WhatsNewList(whatsNew: WhatsNew, modifier: Modifier = Modifier) {
                         .then(if (note.url != null) Modifier.clickable { JsonUpdates.open(context, note.url!!) } else Modifier)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    if (note.heading.isNotBlank()) {
-                        Text(note.heading, style = MaterialTheme.typography.titleMedium)
+                    // Version in the heading weight; the date smaller and quieter, so the version stands out
+                    if (note.version != null || note.date != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            note.version?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
+                            note.date?.let {
+                                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                     Text(note.notes, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                 }

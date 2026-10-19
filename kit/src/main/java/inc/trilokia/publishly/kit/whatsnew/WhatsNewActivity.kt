@@ -87,8 +87,13 @@ class WhatsNewActivity : Activity() {
             val row = convertView ?: newRow()
             val note = items[position]
             row.findViewById<TextView>(ID_HEADING).apply {
-                text = note.heading
-                visibility = if (note.heading.isBlank()) View.GONE else View.VISIBLE
+                text = note.version
+                visibility = if (note.version.isNullOrBlank()) View.GONE else View.VISIBLE
+            }
+            // The date smaller and quieter than the version, like the Compose list
+            row.findViewById<TextView>(ID_DATE).apply {
+                text = note.date
+                visibility = if (note.date.isNullOrBlank()) View.GONE else View.VISIBLE
             }
             row.findViewById<TextView>(ID_NOTES).text = note.notes
             return row
@@ -97,10 +102,20 @@ class WhatsNewActivity : Activity() {
         private fun newRow(): View = LinearLayout(this@WhatsNewActivity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
-            addView(TextView(context).apply {
-                id = ID_HEADING
-                setTextAppearance(android.R.style.TextAppearance_Material_Subhead)
-                setTextColor(colors.text)
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(TextView(context).apply {
+                    id = ID_HEADING
+                    setTextAppearance(android.R.style.TextAppearance_Material_Subhead)
+                    setTextColor(colors.text)
+                })
+                addView(TextView(context).apply {
+                    id = ID_DATE
+                    setTextAppearance(android.R.style.TextAppearance_Material_Caption)
+                    setTextColor(colors.textSecondary)
+                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(10) }
+                })
             })
             addView(TextView(context).apply {
                 id = ID_NOTES
@@ -114,6 +129,7 @@ class WhatsNewActivity : Activity() {
         const val EXTRA_SOURCE = "source"
         const val EXTRA_REFRESH_MS = "refresh_ms"
         private val ID_HEADING = View.generateViewId()
+        private val ID_DATE = View.generateViewId()
         private val ID_NOTES = View.generateViewId()
     }
 }
