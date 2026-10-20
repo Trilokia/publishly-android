@@ -84,12 +84,12 @@ dependencyResolutionManagement {
 }
 ```
 
-In the app module (replace `<tag>` with a release tag such as `v1.0.0`):
+In the app module (the latest release is `v1.1.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed):
 
 ```kotlin
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit:<tag>")
-    implementation("com.github.Trilokia.publishly-android:kit-compose:<tag>")   // Compose apps only
+    implementation("com.github.Trilokia.publishly-android:kit:v1.1.0")
+    implementation("com.github.Trilokia.publishly-android:kit-compose:v1.1.0")   // Compose apps only
 }
 ```
 
@@ -634,7 +634,7 @@ The recordings at the top of this page are this app. The update dialog, the feat
 ./gradlew publishToMavenLocal         # both library modules into ~/.m2
 ```
 
-Tag the repo (`v1.0.0`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
+Tag the repo (`v1.1.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
 
 ## License
 
