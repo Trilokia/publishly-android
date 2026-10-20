@@ -37,12 +37,14 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -53,6 +55,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import inc.trilokia.publishly.kit.R as KitR
 import inc.trilokia.publishly.kit.compose.FeaturedPromoDialog
 import inc.trilokia.publishly.kit.compose.PromoIcon
+import inc.trilokia.publishly.kit.compose.PromptDefaults
+import inc.trilokia.publishly.kit.compose.PromptStyle
 import inc.trilokia.publishly.kit.compose.ReviewPrompt
 import inc.trilokia.publishly.kit.compose.ReviewPromptState
 import inc.trilokia.publishly.kit.compose.StarRating
@@ -74,10 +78,14 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
- * "Custom look": every prompt of the kit drawn by the app through its `content` slot. The kit
- * keeps the logic (when each prompt shows, what each button does, the rests and marks); the lambda
- * gets the data and the answers. Each dialog here is a deliberately plain box, so the point is the
- * mechanism and not any one app's design.
+ * "Custom look": the two ways an app gives the kit's prompts its own look, side by side. The kit
+ * keeps the logic either way (when each prompt shows, what each button does, the rests and marks).
+ *
+ * - **Kit dialogs, your style:** `PromptDefaults.style(...)` on the kit's own dialogs. Colours,
+ *   shape and type change; the layout is the kit's.
+ * - **Your own dialogs:** a `content` lambda on every prompt. The kit draws nothing; the lambda
+ *   gets the data and the answers. Here each one is a deliberately plain box, so the point is the
+ *   mechanism and not any one app's design.
  *
  * [reviewAsk] and [promos] are this screen's own (always due), so the prompts of the other screens
  * don't open at the same time.
@@ -87,29 +95,34 @@ import kotlin.math.roundToInt
 fun CustomLookScreen(updates: Updates, reviewAsk: ReviewAsk, promos: AppPromos, whatsNew: WhatsNew, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val scope = rememberCoroutineScope()
+    var own by rememberSaveable { mutableStateOf(false) }
+    val style = sampleStyle()
 
-    // The prompts. Each draws nothing until the kit says it is due
-    ReviewPrompt(reviewAsk) { s -> OwnReviewDialog(s) }
+    // The prompts. Each draws nothing until the kit says it is due; the switch picks how it is drawn
+    if (own) ReviewPrompt(reviewAsk) { s -> OwnReviewDialog(s) } else ReviewPrompt(reviewAsk, style = style)
 
     var forcedUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
     forcedUpdate?.let { info ->
-        UpdatePrompt(info, onDismiss = { forcedUpdate = null }) { i, cancelable, onUpdate, onLater -> OwnUpdateDialog(i, cancelable, onUpdate, onLater) }
+        if (own) UpdatePrompt(info, onDismiss = { forcedUpdate = null }) { i, cancelable, onUpdate, onLater -> OwnUpdateDialog(i, cancelable, onUpdate, onLater) }
+        else UpdatePrompt(info, style = style, onDismiss = { forcedUpdate = null })
     }
 
     // UpdateFlow runs its check when it enters the composition; each tap mounts a fresh one
     var flowRuns by remember { mutableIntStateOf(0) }
     if (flowRuns > 0) key(flowRuns) {
-        UpdateFlow(updates) { info, cancelable, onUpdate, onLater -> OwnUpdateDialog(info, cancelable, onUpdate, onLater) }
+        if (own) UpdateFlow(updates) { info, cancelable, onUpdate, onLater -> OwnUpdateDialog(info, cancelable, onUpdate, onLater) }
+        else UpdateFlow(updates, style = style)
     }
 
     var featuredRuns by remember { mutableIntStateOf(0) }
     if (featuredRuns > 0) key(featuredRuns) {
-        FeaturedPromoDialog(promos) { f, onGet, onNotNow -> OwnFeaturedDialog(f, onGet, onNotNow) }
+        if (own) FeaturedPromoDialog(promos) { f, onGet, onNotNow -> OwnFeaturedDialog(f, onGet, onNotNow) }
+        else FeaturedPromoDialog(promos, style = style)
     }
 
     // After an update this shows by itself; the button opens it on demand
     val news = rememberWhatsNewDialogState(whatsNew)
-    WhatsNewDialog(news) { notes, onClose -> OwnWhatsNewDialog(news.title, notes, onClose) }
+    if (own) WhatsNewDialog(news) { notes, onClose -> OwnWhatsNewDialog(news.title, notes, onClose) } else WhatsNewDialog(news, style = style)
 
     Scaffold(
         topBar = {
@@ -125,12 +138,16 @@ fun CustomLookScreen(updates: Updates, reviewAsk: ReviewAsk, promos: AppPromos, 
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(
-                    "Every prompt below is drawn by this app through its content slot. The kit only decides when it shows and what each button does.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Choices(listOf("Kit dialogs, your style", "Your own dialogs"), if (own) 1 else 0) { own = it == 1 }
+                    Text(
+                        if (own) "Every prompt below is drawn by this app through its content slot. The kit only decides when it shows and what each button does."
+                        else "The kit's own dialogs, with PromptDefaults.style(): a dark container, square corners, an amber accent and a serif title.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
             }
             item {
                 Group("Prompts") {
@@ -149,18 +166,48 @@ fun CustomLookScreen(updates: Updates, reviewAsk: ReviewAsk, promos: AppPromos, 
                 Group("Restart bar") {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("UpdateReadyBar appears here once Play has downloaded an update (a Play install only). The same bar, as a preview:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        UpdateReadyBar(updates) { onRestart -> OwnRestartBar(onRestart) }
-                        OwnRestartBar(onRestart = {})
+                        if (own) UpdateReadyBar(updates) { onRestart -> OwnRestartBar(onRestart) } else UpdateReadyBar(updates, style = style)
+                        if (own) OwnRestartBar(onRestart = {}) else PreviewRestartBar(style)
                     }
                 }
             }
-                        item { UpdateStateCard(updates) { forcedUpdate = it } }
-                        item {
+            item { UpdateStateCard(updates) { forcedUpdate = it } }
+            item {
                 Group("A rating, from scratch") {
                     InlineRating(reviewAsk)
                 }
             }
         }
+    }
+}
+
+/** The sample's style for the kit's dialogs: nothing like Material's defaults, so the change is easy to see. */
+@Composable
+private fun sampleStyle(): PromptStyle = PromptDefaults.style(
+    containerColor = Color(0xFF1F2933),
+    titleColor = Color(0xFFF5F7FA),
+    bodyColor = Color(0xFFCBD2D9),
+    accentColor = Color(0xFFF6B73C),
+    shape = RoundedCornerShape(4.dp),
+    title = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Serif),
+    starEmptyColor = Color(0xFF52606D),
+    sheetContainerColor = Color(0xFF1F2933),
+    sheetContentColor = Color(0xFFF5F7FA),
+    sheetShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
+    sheetTitle = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Serif),
+    barContainerColor = Color(0xFFF6B73C),
+    barContentColor = Color(0xFF1F2933),
+)
+
+/** The kit's bar as it would look, for the screen; the real one draws itself only when Play has downloaded. */
+@Composable
+private fun PreviewRestartBar(style: PromptStyle) {
+    Row(
+        Modifier.fillMaxWidth().background(style.barContainerColor, RoundedCornerShape(4.dp)).padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(stringResource(KitR.string.kit_update_ready), style = style.barText, color = style.barContentColor, modifier = Modifier.weight(1f))
+        Text(stringResource(KitR.string.kit_restart), style = style.label, color = style.barContentColor, modifier = Modifier.padding(12.dp))
     }
 }
 
@@ -275,7 +322,7 @@ private fun OwnRestartBar(onRestart: () -> Unit) {
 /**
  * `updates.state` as a "Check for updates" row would show it: one line per state, a progress bar
  * while Play downloads. "Check now" is `updates.checkNow()`; when the JSON file has the news,
- * [onServerUpdate] opens the app's own update prompt.
+ * [onServerUpdate] opens the update prompt in whichever way the switch says.
  */
 @Composable
 private fun UpdateStateCard(updates: Updates, onServerUpdate: (UpdateInfo) -> Unit) {

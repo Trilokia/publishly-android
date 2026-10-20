@@ -643,7 +643,21 @@ OpenSourceScreen(
 )
 ```
 
-Prompts can be a dialog, a bottom sheet or a snackbar: `UpdateFlow`, `UpdatePrompt` and `ReviewPrompt` take a `presentation` (`Presentation.Dialog`, `BottomSheet`, `Snackbar`; the snackbar needs your Scaffold's `SnackbarHostState`, and falls back to a dialog without one).
+Prompts can be a dialog, a bottom sheet or a snackbar: `UpdateFlow`, `UpdatePrompt` and `ReviewPrompt` take a `presentation` (`Presentation.Dialog`, `BottomSheet`, `Snackbar`; the snackbar needs your Scaffold's `SnackbarHostState`, and falls back to a dialog without one). The prompts take a `style` too, built from `PromptDefaults.style(...)` the same way, for the dialog, the sheet and the restart bar:
+
+```kotlin
+val prompts = PromptDefaults.style(
+    containerColor = MaterialTheme.colorScheme.surface,
+    accentColor = MaterialTheme.colorScheme.tertiary,     // buttons and stars
+    shape = RoundedCornerShape(8.dp),
+    title = MaterialTheme.typography.titleLarge,
+)
+UpdateFlow(updates, style = prompts)
+ReviewPrompt(reviewAsk, style = prompts)
+FeaturedPromoDialog(promos, style = prompts)
+WhatsNewDialog(whatsNew, style = prompts)
+UpdateReadyBar(updates, style = prompts)                  // barContainerColor, barContentColor, barText
+```
 
 <p>
 <img src="docs/screenshots/update-sheet.png" width="160" alt="The update prompt as a bottom sheet">
@@ -673,7 +687,15 @@ The sample's More apps and Licences tabs have a switch for every layout. The pla
 
 ### Draw the prompts yourself
 
-Styles and layouts keep the kit's Material look. An app with a look of its own (hand-drawn, a game's UI, a brand) can draw every prompt itself and leave the logic to the kit: when to show, what each button does, marking it shown, the rests. Give the prompt a `content` lambda; the kit then draws nothing of its own (no dialog window, no sheet, no Material surface) and calls the lambda only while there is something to show:
+Three levels, so ten apps with ten designs never put anything app-specific into the library:
+
+| Level | How | When |
+| --- | --- | --- |
+| The kit's look | nothing to do | Material apps |
+| The kit's dialogs, your style | `style = PromptDefaults.style(…)` (above) | your colours, shape and type; the kit's layout |
+| Your own dialogs | a `content` lambda on the prompt | a look of your own: a game's UI, a brand, a hand-drawn app |
+
+The third level: give the prompt a `content` lambda, and the kit draws nothing of its own (no dialog window, no sheet, no Material surface). It keeps the logic (when to show, what each button does, marking shown, the rests) and calls the lambda only while there is something to show:
 
 ```mermaid
 flowchart LR
@@ -718,7 +740,7 @@ val news = rememberWhatsNewDialogState(whatsNew)    // notes, title, close(); sh
 WhatsNewDialog(news)                                 // the kit's dialog, or your lambda, on that state
 ```
 
-The sample's Home → Custom look screen draws every one of them as a plain boxed dialog, with foundation only, so the point is the mechanism and not any one app's design.
+The sample's Home → Custom look screen has a switch between the second level (the kit's dialogs in a dark, square, serif style) and the third (every prompt as a plain boxed dialog drawn with foundation only).
 
 ### Change the words
 
@@ -795,7 +817,7 @@ A language the kit doesn't ship falls back to English; add a `values-xx/strings.
 | Home: Update available | `UpdatePrompt` with the bundled update file, in the chosen style |
 | Home: Rate this app | `ReviewAsk`, always due here: our prompt (in the chosen style), then Play's sheet or the Play listing |
 | Home: This version's notes | `whatsNew.showDialog`, forced, so it shows every time |
-| Home: Custom look | Every prompt drawn by the app through its `content` slot, and a rating card built from `rememberReviewPromptState` |
+| Home: Custom look | A switch between the kit's dialogs in a `PromptDefaults.style(…)` of the sample's own and every prompt drawn by the app through its `content` slot; an update-state card and a rating card built from the state holders |
 | Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
 | More apps tab | `MoreAppsList`, every layout, with a switch to show or hide the apps the phone already has |
 | What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |

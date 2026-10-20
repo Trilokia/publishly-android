@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
@@ -63,12 +61,13 @@ import kotlin.math.sin
  * with feedback to [ReviewAsk.feedbackEmail]. "Not now" rests; "Don't ask again" stops for good.
  * Put it anywhere in the composition; it draws nothing until asked.
  *
- * [content] draws the prompt your way: the kit then draws nothing of its own (no dialog window,
- * no Material surface) and calls it while the prompt is up, with the [ReviewPromptState] that
- * knows the stars, the labels and the answers. Wrap it in your own `Dialog` or sheet.
+ * [style] changes the dialog's colours, shape and type. [content] draws the prompt your way
+ * instead: the kit then draws nothing of its own (no dialog window, no Material surface) and calls
+ * it while the prompt is up, with the [ReviewPromptState] that knows the stars, the labels and the
+ * answers. Wrap it in your own `Dialog` or sheet.
  */
 @Composable
-fun ReviewPromptDialog(reviewAsk: ReviewAsk, content: (@Composable (ReviewPromptState) -> Unit)? = null) {
+fun ReviewPromptDialog(reviewAsk: ReviewAsk, style: PromptStyle = PromptDefaults.style(), content: (@Composable (ReviewPromptState) -> Unit)? = null) {
     val s = rememberReviewPromptState(reviewAsk)
     if (!s.visible) return
     if (content != null) {
@@ -77,15 +76,20 @@ fun ReviewPromptDialog(reviewAsk: ReviewAsk, content: (@Composable (ReviewPrompt
     }
     AlertDialog(
         onDismissRequest = s::later,
-        title = { Text(s.title) },
-        text = { ReviewPromptBody(s) },
-        confirmButton = { ReviewConfirmButton(s, filled = false) },
+        title = { Text(s.title, style = style.title) },
+        text = { ReviewPromptBody(s, style) },
+        confirmButton = { ReviewConfirmButton(s, filled = false, style = style) },
         dismissButton = {
             Row {
-                TextButton(onClick = s::never) { Text(s.neverLabel) }
-                TextButton(onClick = s::later) { Text(s.laterLabel) }
+                PromptTextButton(style, onClick = s::never) { Text(s.neverLabel) }
+                PromptTextButton(style, onClick = s::later) { Text(s.laterLabel) }
             }
         },
+        containerColor = style.containerColor,
+        titleContentColor = style.titleColor,
+        textContentColor = style.bodyColor,
+        shape = style.shape,
+        tonalElevation = style.tonalElevation,
     )
 }
 
@@ -189,14 +193,14 @@ fun rememberReviewPromptState(reviewAsk: ReviewAsk): ReviewPromptState {
 
 /** The message, the stars and the hint under them: shared by the dialog and the sheet. */
 @Composable
-internal fun ReviewPromptBody(s: ReviewPromptState) {
+internal fun ReviewPromptBody(s: ReviewPromptState, style: PromptStyle) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(s.message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
-        StarRating(s.stars, s::setStars)
+        Text(s.message, style = style.body, modifier = Modifier.fillMaxWidth())
+        StarRating(s.stars, s::setStars, color = style.accentColor, emptyColor = style.starEmptyColor)
         Text(
             text = s.hint,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = style.bodyColor,
             textAlign = TextAlign.Center,
         )
     }
@@ -204,10 +208,10 @@ internal fun ReviewPromptBody(s: ReviewPromptState) {
 
 /** "Rate it" before a star is picked, then "Rate on Google Play" or "Send feedback". */
 @Composable
-internal fun ReviewConfirmButton(s: ReviewPromptState, filled: Boolean, modifier: Modifier = Modifier) {
+internal fun ReviewConfirmButton(s: ReviewPromptState, filled: Boolean, style: PromptStyle, modifier: Modifier = Modifier) {
     val label = s.confirmLabel
-    if (filled) Button(onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-    else TextButton(onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    if (filled) PromptButton(style, onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    else PromptTextButton(style, onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 /**

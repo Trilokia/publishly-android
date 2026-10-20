@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -36,9 +35,10 @@ import inc.trilokia.publishly.kit.update.Updates
  * The whole update flow for a Compose app: runs [Updates.check] once (Play first, the JSON file
  * when Play can't answer) and shows the update dialog when the JSON file is the one with news.
  * Play's side needs nothing here beyond [UpdateReadyBar]. [presentation] picks a dialog, a bottom sheet
- * or a snackbar (which needs the app's [snackbarHostState]). [onSettled] fires once there is nothing
- * (more) to show: at once for Play outcomes, after "Later" for the dialog. Use it to queue the
- * next start-up dialog (the featured app, what's new) behind this one.
+ * or a snackbar (which needs the app's [snackbarHostState]); [style] its colours, shape and type.
+ * [onSettled] fires once there is nothing (more) to show: at once for Play outcomes, after "Later"
+ * for the dialog. Use it to queue the next start-up dialog (the featured app, what's new) behind
+ * this one.
  */
 @Composable
 fun UpdateFlow(
@@ -46,11 +46,12 @@ fun UpdateFlow(
     cancelable: Boolean = true,
     presentation: Presentation = Presentation.Dialog,
     snackbarHostState: SnackbarHostState? = null,
+    style: PromptStyle = PromptDefaults.style(),
     onSettled: () -> Unit = {},
 ) {
     val s = rememberUpdateFlowState(updates, onSettled)
     s.info?.let { info ->
-        UpdatePrompt(info, presentation, cancelable, snackbarHostState, onDismiss = s::later)
+        UpdatePrompt(info, presentation, cancelable, snackbarHostState, style, onDismiss = s::later)
     }
 }
 
@@ -118,17 +119,27 @@ fun rememberUpdateFlowState(updates: Updates, onSettled: () -> Unit = {}): Updat
 
 /** [UpdateReadyBar] for the combined flow: the same bar, fed by `updates.play`. */
 @Composable
-fun UpdateReadyBar(updates: Updates, modifier: Modifier = Modifier, content: (@Composable (onRestart: () -> Unit) -> Unit)? = null) =
-    UpdateReadyBar(updates.play, modifier, content)
+fun UpdateReadyBar(
+    updates: Updates,
+    modifier: Modifier = Modifier,
+    style: PromptStyle = PromptDefaults.style(),
+    content: (@Composable (onRestart: () -> Unit) -> Unit)? = null,
+) = UpdateReadyBar(updates.play, modifier, style, content)
 
 /**
  * "An update has been downloaded. Restart": shows itself once [PlayUpdates.downloaded] turns
  * true and nothing before. Put it above the bottom bar, or anywhere it won't cover a button.
- * [content] draws the bar your way: called at the same moment, inside [modifier], with the
- * restart action (which installs the update and reopens the app).
+ * [style] sets the bar's colours and text; [content] draws the bar your way instead: called at
+ * the same moment, inside [modifier], with the restart action (which installs the update and
+ * reopens the app).
  */
 @Composable
-fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier, content: (@Composable (onRestart: () -> Unit) -> Unit)? = null) {
+fun UpdateReadyBar(
+    updates: PlayUpdates,
+    modifier: Modifier = Modifier,
+    style: PromptStyle = PromptDefaults.style(),
+    content: (@Composable (onRestart: () -> Unit) -> Unit)? = null,
+) {
     val downloaded by updates.downloaded.collectAsStateWithLifecycle()
     if (!downloaded) return
     if (content != null) {
@@ -137,8 +148,8 @@ fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier, content:
     }
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = style.barContainerColor,
+        contentColor = style.barContentColor,
         tonalElevation = 3.dp,
     ) {
         Row(
@@ -147,10 +158,10 @@ fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier, content:
         ) {
             Text(
                 text = stringResource(R.string.kit_update_ready),
-                style = MaterialTheme.typography.bodyMedium,
+                style = style.barText,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = { updates.complete() }) {
+            PromptTextButton(style, onClick = { updates.complete() }) {
                 Text(stringResource(R.string.kit_restart))
             }
         }
@@ -162,23 +173,28 @@ fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier, content:
  * [UpdateInfo]; [onDismiss] runs on "Later" or a tap outside (not when [cancelable] is false).
  */
 @Composable
-fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit, cancelable: Boolean = true) {
+fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit, cancelable: Boolean = true, style: PromptStyle = PromptDefaults.style()) {
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = { if (cancelable) onDismiss() },
-        title = { Text(stringResource(R.string.kit_update_title)) },
+        title = { Text(stringResource(R.string.kit_update_title), style = style.title) },
         text = {
-            Text(info.releaseNotes.ifBlank { stringResource(R.string.kit_update_version, info.versionName) })
+            Text(info.releaseNotes.ifBlank { stringResource(R.string.kit_update_version, info.versionName) }, style = style.body)
         },
         confirmButton = {
-            TextButton(onClick = { JsonUpdates.open(context, info.url) }) {
+            PromptTextButton(style, onClick = { JsonUpdates.open(context, info.url) }) {
                 Text(stringResource(R.string.kit_update_now))
             }
         },
         dismissButton = if (cancelable) {
-            { TextButton(onClick = onDismiss) { Text(stringResource(R.string.kit_update_later)) } }
+            { PromptTextButton(style, onClick = onDismiss) { Text(stringResource(R.string.kit_update_later)) } }
         } else {
             null
         },
+        containerColor = style.containerColor,
+        titleContentColor = style.titleColor,
+        textContentColor = style.bodyColor,
+        shape = style.shape,
+        tonalElevation = style.tonalElevation,
     )
 }

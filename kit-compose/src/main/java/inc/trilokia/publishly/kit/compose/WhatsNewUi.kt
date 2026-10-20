@@ -152,20 +152,27 @@ fun ReleaseNoteRow(note: ReleaseNote, style: WhatsNewStyle = WhatsNewDefaults.st
  * Shows this version's notes once after an update ([WhatsNew.pending]) and marks them seen on
  * close. Draws nothing when nothing is pending. Put it anywhere in the composition.
  *
- * [content] draws the dialog your way: the kit then draws nothing of its own and calls it while
- * there are notes to show, with the notes (newest first) and `onClose` (which marks them seen).
+ * [style] changes the dialog's look. [content] draws the dialog your way instead: the kit then
+ * draws nothing of its own and calls it while there are notes to show, with the notes (newest first) and `onClose` (which marks them seen).
  * Wrap it in your own `Dialog`; back and a tap outside should call `onClose` too.
  */
 @Composable
-fun WhatsNewDialog(whatsNew: WhatsNew, content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null) =
-    WhatsNewDialog(rememberWhatsNewDialogState(whatsNew), content)
+fun WhatsNewDialog(
+    whatsNew: WhatsNew,
+    style: PromptStyle = PromptDefaults.style(),
+    content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null,
+) = WhatsNewDialog(rememberWhatsNewDialogState(whatsNew), style, content)
 
 /**
  * [WhatsNewDialog] fed by a [WhatsNewDialogState], so the app can also open it on demand
  * ([WhatsNewDialogState.show]), say from a "What's new in this version" row.
  */
 @Composable
-fun WhatsNewDialog(state: WhatsNewDialogState, content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null) {
+fun WhatsNewDialog(
+    state: WhatsNewDialogState,
+    style: PromptStyle = PromptDefaults.style(),
+    content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null,
+) {
     val notes = state.notes
     if (notes.isEmpty()) return
     if (content != null) {
@@ -174,13 +181,18 @@ fun WhatsNewDialog(state: WhatsNewDialogState, content: (@Composable (notes: Lis
     }
     AlertDialog(
         onDismissRequest = state::close,
-        title = { Text(state.title) },
+        title = { Text(state.title, style = style.title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(WhatsNew.text(notes))
+                Text(WhatsNew.text(notes), style = style.body)
             }
         },
-        confirmButton = { TextButton(onClick = state::close) { Text(stringResource(R.string.kit_ok)) } },
+        confirmButton = { PromptTextButton(style, onClick = state::close) { Text(stringResource(R.string.kit_ok)) } },
+        containerColor = style.containerColor,
+        titleContentColor = style.titleColor,
+        textContentColor = style.bodyColor,
+        shape = style.shape,
+        tonalElevation = style.tonalElevation,
     )
 }
 

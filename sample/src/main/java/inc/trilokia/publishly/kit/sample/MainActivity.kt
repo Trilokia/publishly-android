@@ -268,7 +268,7 @@ private fun HomeScreen(
         }
         item {
             Section("Draw it yourself") {
-                ActionRow(Icons.Outlined.Brush, "Custom look", "Every prompt drawn by the app, through the content slots", onCustomLook)
+                ActionRow(Icons.Outlined.Brush, "Custom look", "The kit's dialogs in your style, or your own dialogs through the content slots", onCustomLook)
             }
         }
         item {
@@ -313,7 +313,7 @@ private fun ActionRow(icon: ImageVector, title: String, detail: String, onClick:
 /** A row of choices above a tab's content, for the layout switches below. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Choices(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+internal fun Choices(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     val crowded = labels.size > 3
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         labels.forEachIndexed { i, label ->

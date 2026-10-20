@@ -506,14 +506,15 @@ private fun AppPromos.openOrLaunch(context: android.content.Context, entry: Prom
  * Shows the feed's featured app in a dialog when it is due (see [AppPromos.featured]), once per
  * composition. Place it on the home screen; it decides for itself whether to appear.
  *
- * [content] draws the prompt your way: the kit then draws nothing of its own and calls it while the
- * featured app waits for an answer, with the app and its words ([FeaturedPromo]) and the two answers
+ * [style] changes the dialog's look. [content] draws the prompt your way instead: the kit then
+ * draws nothing of its own and calls it while the featured app waits for an answer, with the app and its words ([FeaturedPromo]) and the two answers
  * (`onGet` opens its Play page, `onNotNow` lets it rest). It counts as shown once it is due, as the
  * kit's own dialog does. [rememberFeaturedPromoState] has "Don't show again" too.
  */
 @Composable
 fun FeaturedPromoDialog(
     promos: AppPromos,
+    style: PromptStyle = PromptDefaults.style(),
     content: (@Composable (featured: FeaturedPromo, onGet: () -> Unit, onNotNow: () -> Unit) -> Unit)? = null,
 ) {
     val s = rememberFeaturedPromoState(promos)
@@ -525,14 +526,19 @@ fun FeaturedPromoDialog(
     AlertDialog(
         onDismissRequest = s::notNow,
         icon = { PromoIcon(f.app, size = 64.dp) },
-        title = { Text(f.title, textAlign = TextAlign.Center) },
-        text = { Text(f.message) },
+        title = { Text(f.title, style = style.title, textAlign = TextAlign.Center) },
+        text = { Text(f.message, style = style.body) },
         confirmButton = {
-            TextButton(onClick = s::get) { Text(stringResource(R.string.kit_get)) }
+            PromptTextButton(style, onClick = s::get) { Text(stringResource(R.string.kit_get)) }
         },
         dismissButton = {
-            TextButton(onClick = s::notNow) { Text(stringResource(R.string.kit_not_now)) }
+            PromptTextButton(style, onClick = s::notNow) { Text(stringResource(R.string.kit_not_now)) }
         },
+        containerColor = style.containerColor,
+        titleContentColor = style.titleColor,
+        textContentColor = style.bodyColor,
+        shape = style.shape,
+        tonalElevation = style.tonalElevation,
     )
 }
 
