@@ -15,6 +15,7 @@ import inc.trilokia.publishly.kit.KitColors
 import inc.trilokia.publishly.kit.KitScreen
 import inc.trilokia.publishly.kit.KitTheme
 import inc.trilokia.publishly.kit.oss.R
+import inc.trilokia.publishly.kit.R as KitR
 
 /**
  * The licence list for View-based apps: one row per library (name, version, author, licence),
@@ -56,7 +57,7 @@ class OpenSourceActivity : Activity() {
         KitTheme.dialog(this)
             .setTitle(library.name)
             .setMessage(text)
-            .setPositiveButton(android.R.string.ok, null)
+            .setPositiveButton(KitR.string.kit_ok, null)
             .apply {
                 if (site != null) setNeutralButton(site.removePrefix("https://").removePrefix("http://").take(40)) { _, _ ->
                     runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(site))) }

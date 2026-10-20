@@ -13,6 +13,8 @@
     <string name="kit_review_later">Not now</string>
     <string name="kit_review_never">Don’t ask again</string>
     <string name="kit_review_tap_star">Tap a star</string>
+    <!-- Read out by TalkBack for each star of the rating row -->
+    <string name="kit_review_star">%1$d of 5 stars</string>
     <string name="kit_review_hint_good">Great! A rating on Google Play helps others find the app.</string>
     <string name="kit_review_hint_low">Sorry to hear that. Tell us what went wrong and we’ll fix it.</string>
     <string name="kit_review_rate_play">Rate on Play</string>

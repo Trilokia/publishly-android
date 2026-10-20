@@ -37,6 +37,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -145,6 +151,9 @@ class ReviewPromptState internal constructor(
             },
         )
 
+    /** "3 of 5 stars": what TalkBack reads for star [n] of a row you draw yourself. */
+    fun starLabel(n: Int): String = context.getString(R.string.kit_review_star, n)
+
     /** "Not now", for [later]. */
     val laterLabel: String get() = context.getString(R.string.kit_review_later)
 
@@ -230,6 +239,7 @@ fun StarRating(
                     scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
                 }
             }
+            val label = stringResource(R.string.kit_review_star, i)
             Star(
                 filled = i <= rating,
                 color = color,
@@ -237,6 +247,11 @@ fun StarRating(
                 modifier = Modifier
                     .size(size)
                     .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+                    .semantics {
+                        contentDescription = label
+                        role = Role.RadioButton
+                        selected = i <= rating
+                    }
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onRating(i) },
             )
         }

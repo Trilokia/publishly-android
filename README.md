@@ -66,7 +66,7 @@ Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
 6. [Your own apps' promo](#6-your-own-apps-promo-apppromos)
 7. [What's new](#7-whats-new-whatsnew)
 8. [Open source licences](#8-open-source-licences)
-9. [Theme](#9-theme-one-look-for-every-element-kittheme), [customising each element](#customise-each-element), [drawing the prompts yourself](#draw-the-prompts-yourself)
+9. [Theme](#9-theme-one-look-for-every-element-kittheme), [customising each element](#customise-each-element), [drawing the prompts yourself](#draw-the-prompts-yourself), [changing the words](#change-the-words)
 10. [Before you ship](#10-before-you-ship)
 11. [The sample app](#11-the-sample-app)
 12. [Build and test](#12-build-and-test)
@@ -706,7 +706,7 @@ WhatsNewDialog(whatsNew) { notes, onClose -> ... }
 
 - Without a lambda every prompt looks as it always has. `ReviewPromptDialog` and `ReviewPromptSheet` take the same lambda as `ReviewPrompt`; with it, all three are the same, and `presentation` no longer matters.
 - `onUpdate` opens the update's url and leaves the prompt up, so a forced update can't be skipped; `cancelable` says whether back and a tap outside may call `onLater`.
-- The review state's labels come from the kit's own strings, so they are translated and yours to change. For the other prompts use the same strings (`stringResource(inc.trilokia.publishly.kit.R.string.kit_update_now)`) or your own words.
+- The review state's labels come from the kit's own strings, so they are translated and [yours to change](#change-the-words). For the other prompts use the same strings (`stringResource(inc.trilokia.publishly.kit.R.string.kit_update_now)`) or your own words.
 
 The state holders behind the slots, for a prompt that isn't a dialog at all (a card on the page, a banner):
 
@@ -719,6 +719,60 @@ WhatsNewDialog(news)                                 // the kit's dialog, or you
 ```
 
 The sample's Home → Custom look screen draws every one of them as a plain boxed dialog, with foundation only, so the point is the mechanism and not any one app's design.
+
+### Change the words
+
+Every piece of text the kit shows comes from a string resource named `kit_*`, in English and Hindi (`values-hi`). An app overrides any of them by declaring the same name in its own `res/values/strings.xml` (and `values-hi/`, `values-xx/`): resource merging takes the app's copy. Keep the `%1$s` / `%1$d` placeholders where there are any.
+
+```xml
+<!-- app/src/main/res/values/strings.xml -->
+<string name="kit_review_title">Liking %1$s so far?</string>
+<string name="kit_review_rate_play">Leave a rating</string>
+<string name="kit_update_ready">The new version is ready.</string>
+```
+
+The strings, and where each one shows (the review prompt's labels also reach your own prompt through `ReviewPromptState`):
+
+| String | English | Where |
+| --- | --- | --- |
+| `kit_update_title` | Update available | Update prompt |
+| `kit_update_version` | Version %1$s is available. | Update prompt, snackbar |
+| `kit_update_now` | Update | Update prompt |
+| `kit_update_later` | Later | Update prompt |
+| `kit_update_ready` | An update has been downloaded. | Restart bar |
+| `kit_restart` | Restart | Restart bar |
+| `kit_review_title` | Enjoying %1$s? | Review prompt |
+| `kit_review_message` | A rating on Google Play helps a lot, and takes a few seconds. | Review prompt |
+| `kit_review_rate` | Rate it | Review prompt, before a star is picked |
+| `kit_review_later` | Not now | Review prompt |
+| `kit_review_never` | Don’t ask again | Review prompt |
+| `kit_review_tap_star` | Tap a star | Review prompt |
+| `kit_review_star` | %1$d of 5 stars | Each star, for TalkBack |
+| `kit_review_hint_good` | Great! A rating on Google Play helps others find the app. | Review prompt, 4–5 stars |
+| `kit_review_hint_low` | Sorry to hear that. Tell us what went wrong and we’ll fix it. | Review prompt, 1–3 stars |
+| `kit_review_rate_play` | Rate on Play | Review prompt, 4–5 stars |
+| `kit_review_send_feedback` | Send feedback | Review prompt, 1–3 stars |
+| `kit_feedback_subject` | Feedback on %1$s %2$s | Feedback mail |
+| `kit_feedback_rating` | My rating: %1$d / 5 | Feedback mail |
+| `kit_feedback_body` | What could be better? | Feedback mail |
+| `kit_more_apps` | More apps from us | More apps title |
+| `kit_more_apps_from` | More apps from %1$s | More apps title, with a developer |
+| `kit_get` | Get | More apps, featured dialog |
+| `kit_open` | Open | More apps, installed |
+| `kit_installed_thanks` | Installed · Thanks! | More apps, installed |
+| `kit_installed` | Installed | More apps row, installed |
+| `kit_not_now` | Not now | Featured dialog |
+| `kit_featured_title` | Try %1$s | Featured dialog, without a feed title |
+| `kit_whats_new` | What’s new | What's new screen |
+| `kit_whats_new_in` | What’s new in %1$s | What's new dialog |
+| `kit_whats_new_empty` | Nothing to show yet. | What's new screen |
+| `kit_ok` | OK | Dialogs |
+| `kit_back` | Back | View screens' back arrow |
+| `kit_open_source` | Open source licences | Licence screen (`kit-oss`) |
+| `kit_open_source_empty` | No licence list in this build. | Licence screen (`kit-oss`) |
+| `kit_licence_unknown` | Other licences | Licence screen, By licence (`kit-oss`) |
+
+A language the kit doesn't ship falls back to English; add a `values-xx/strings.xml` with the same names to your app and the kit speaks it.
 
 ## 10. Before you ship
 
