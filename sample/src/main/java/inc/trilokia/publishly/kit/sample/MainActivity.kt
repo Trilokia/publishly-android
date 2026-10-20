@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.NewReleases
@@ -127,10 +128,18 @@ class MainActivity : ComponentActivity() {
         // or a JSON file on its server), plus a public GitHub repo's commits to show that source
         val whatsNew = WhatsNew(this, WhatsNewSource.Bundled(asset("release-notes.json")))
         val whatsNewGitHub = WhatsNew(this, WhatsNewSource.GitHubCommits("mikepenz", "AboutLibraries"))
+        // The "Custom look" screen's own copies, always due, so its prompts open on every tap and
+        // the ones of the other screens stay closed
+        val customReviewAsk = ReviewAsk(
+            this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE,
+            feedbackEmail = "feedback@example.com",
+        )
+        val customPromos = AppPromos(this, url = "https://www.trilokiainc.com/apps.json", bundledJson = asset("apps.json"), featuredRestMs = 0L)
 
         setContent {
             SampleTheme {
                 var tab by rememberSaveable { mutableStateOf(Tab.HOME) }
+                var customLook by rememberSaveable { mutableStateOf(false) }
                 BackHandler(enabled = tab != Tab.HOME) { tab = Tab.HOME }
                 val scope = rememberCoroutineScope()
                 val snackbarHost = remember { SnackbarHostState() }
@@ -150,7 +159,9 @@ class MainActivity : ComponentActivity() {
                 var forcedUpdate by remember { mutableStateOf<UpdateInfo?>(null) }
                 forcedUpdate?.let { UpdatePrompt(it, style, snackbarHostState = snackbarHost, onDismiss = { forcedUpdate = null }) }
 
-                Scaffold(
+                if (customLook) {
+                    CustomLookScreen(updates, customReviewAsk, customPromos, whatsNew, onBack = { customLook = false })
+                } else Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHost) },
                     topBar = {
                         CenterAlignedTopAppBar(
@@ -192,6 +203,7 @@ class MainActivity : ComponentActivity() {
                             onMoreAppsView = { promos.openList(this@MainActivity) },
                             onWhatsNewView = { whatsNew.openList(this@MainActivity) },
                             onLicencesView = { OpenSource.open(this@MainActivity) },
+                            onCustomLook = { customLook = true },
                         )
                         Tab.APPS -> AppsTab(padding, promos)
                         Tab.NEWS -> WhatsNewScreen(padding, whatsNew, whatsNewGitHub)
@@ -220,6 +232,7 @@ private fun HomeScreen(
     onMoreAppsView: () -> Unit,
     onWhatsNewView: () -> Unit,
     onLicencesView: () -> Unit,
+    onCustomLook: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -249,6 +262,11 @@ private fun HomeScreen(
         item {
             Section("What's new") {
                 ActionRow(Icons.Outlined.NewReleases, "This version's notes", "The after-update dialog, forced for the demo", onWhatsNewDialog)
+            }
+        }
+        item {
+            Section("Draw it yourself") {
+                ActionRow(Icons.Outlined.Brush, "Custom look", "Every prompt drawn by the app, through the content slots", onCustomLook)
             }
         }
         item {

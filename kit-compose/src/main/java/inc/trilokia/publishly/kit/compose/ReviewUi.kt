@@ -23,11 +23,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -36,7 +37,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -56,40 +56,136 @@ import kotlin.math.sin
  * lead to Play's review sheet (or the Play listing when Play refuses), fewer open the mail app
  * with feedback to [ReviewAsk.feedbackEmail]. "Not now" rests; "Don't ask again" stops for good.
  * Put it anywhere in the composition; it draws nothing until asked.
+ *
+ * [content] draws the prompt your way: the kit then draws nothing of its own (no dialog window,
+ * no Material surface) and calls it while the prompt is up, with the [ReviewPromptState] that
+ * knows the stars, the labels and the answers. Wrap it in your own `Dialog` or sheet.
  */
 @Composable
-fun ReviewPromptDialog(reviewAsk: ReviewAsk) {
-    val visible by reviewAsk.prompt.collectAsStateWithLifecycle()
-    if (!visible) return
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
-    var stars by rememberSaveable { mutableIntStateOf(0) }
+fun ReviewPromptDialog(reviewAsk: ReviewAsk, content: (@Composable (ReviewPromptState) -> Unit)? = null) {
+    val s = rememberReviewPromptState(reviewAsk)
+    if (!s.visible) return
+    if (content != null) {
+        content(s)
+        return
+    }
     AlertDialog(
-        onDismissRequest = { reviewAsk.answer(activity, Answer.LATER) },
-        title = { Text(stringResource(R.string.kit_review_title, reviewAsk.appName)) },
-        text = { ReviewPromptBody(reviewAsk, stars) { stars = it } },
-        confirmButton = { ReviewConfirmButton(reviewAsk, stars, filled = false) { reviewAsk.answerRating(activity, stars) } },
+        onDismissRequest = s::later,
+        title = { Text(s.title) },
+        text = { ReviewPromptBody(s) },
+        confirmButton = { ReviewConfirmButton(s, filled = false) },
         dismissButton = {
             Row {
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.NEVER) }) { Text(stringResource(R.string.kit_review_never)) }
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.LATER) }) { Text(stringResource(R.string.kit_review_later)) }
+                TextButton(onClick = s::never) { Text(s.neverLabel) }
+                TextButton(onClick = s::later) { Text(s.laterLabel) }
             }
         },
     )
 }
 
+/**
+ * The review prompt's state and answers, for drawing the prompt yourself. The `content` of
+ * [ReviewPrompt], [ReviewPromptDialog] and [ReviewPromptSheet] gets one; [rememberReviewPromptState]
+ * makes one for a prompt built from scratch. The kit keeps the logic: which way the stars go (Play
+ * or feedback), what each answer does, the rest after "Not now" and the stop after "Don't ask again".
+ */
+@Stable
+class ReviewPromptState internal constructor(
+    /** The rules and answers behind this prompt. */
+    val reviewAsk: ReviewAsk,
+    private val context: Context,
+    private val activity: Activity?,
+    private val starsState: MutableIntState,
+    private val visibleState: State<Boolean>,
+) {
+    /** True while the prompt should be on screen ([ReviewAsk.prompt]). */
+    val visible: Boolean get() = visibleState.value
+
+    /** The stars picked so far: 0 (none yet) to 5. */
+    val stars: Int get() = starsState.intValue
+
+    /** Picks [stars] (1 to 5; 0 clears them). Nothing is answered until [confirm]. */
+    fun setStars(stars: Int) {
+        starsState.intValue = stars.coerceIn(0, 5)
+    }
+
+    /** Where [confirm] goes with the stars picked: Play, feedback, or a rest; null before the first star. */
+    val answer: Answer? get() = if (stars == 0) null else reviewAsk.answerFor(stars)
+
+    /** False until a star is picked; the kit's own prompts grey out their main button until then. */
+    val canConfirm: Boolean get() = stars > 0
+
+    /** "Enjoying Sample App?" */
+    val title: String = context.getString(R.string.kit_review_title, reviewAsk.appName)
+
+    /** The line above the stars. */
+    val message: String get() = context.getString(R.string.kit_review_message)
+
+    /** The line under the stars: "Tap a star", then a word on where this rating goes. */
+    val hint: String
+        get() = context.getString(
+            when (answer) {
+                null -> R.string.kit_review_tap_star
+                Answer.RATE -> R.string.kit_review_hint_good
+                else -> R.string.kit_review_hint_low
+            },
+        )
+
+    /**
+     * The main button: "Rate it" before a star is picked, then "Rate on Play" or "Send feedback"
+     * (or "Not now" for a low rating when there is no feedback address).
+     */
+    val confirmLabel: String
+        get() = context.getString(
+            when (answer) {
+                null -> R.string.kit_review_rate
+                Answer.RATE -> R.string.kit_review_rate_play
+                Answer.FEEDBACK -> R.string.kit_review_send_feedback
+                else -> R.string.kit_review_later
+            },
+        )
+
+    /** "Not now", for [later]. */
+    val laterLabel: String get() = context.getString(R.string.kit_review_later)
+
+    /** "Don't ask again", for [never]. */
+    val neverLabel: String get() = context.getString(R.string.kit_review_never)
+
+    /** The main button: Play's sheet for a good rating, the mail app for a low one. With no star picked, Play. */
+    fun confirm() {
+        if (stars > 0) reviewAsk.answerRating(activity, stars) else reviewAsk.answer(activity, Answer.RATE)
+    }
+
+    /** "Not now": rests until the rule says it's due again. Back, a tap outside or a swipe away should do the same. */
+    fun later() = reviewAsk.answer(activity, Answer.LATER)
+
+    /** "Don't ask again": never again on this phone. */
+    fun never() = reviewAsk.answer(activity, Answer.NEVER)
+}
+
+/**
+ * The [ReviewPromptState] of [reviewAsk], for a prompt of your own: show it while
+ * [ReviewPromptState.visible], call its answers from your buttons. Each new ask starts with no stars.
+ */
+@Composable
+fun rememberReviewPromptState(reviewAsk: ReviewAsk): ReviewPromptState {
+    val context = LocalContext.current
+    val visible = reviewAsk.prompt.collectAsStateWithLifecycle()
+    val stars = rememberSaveable(reviewAsk) { mutableIntStateOf(0) }
+    LaunchedEffect(visible.value) { if (!visible.value) stars.intValue = 0 }
+    return remember(reviewAsk, context, stars, visible) {
+        ReviewPromptState(reviewAsk, context, context.findActivity(), stars, visible)
+    }
+}
+
 /** The message, the stars and the hint under them: shared by the dialog and the sheet. */
 @Composable
-internal fun ReviewPromptBody(reviewAsk: ReviewAsk, stars: Int, onStars: (Int) -> Unit) {
+internal fun ReviewPromptBody(s: ReviewPromptState) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.kit_review_message), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
-        StarRating(stars, onStars)
+        Text(s.message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
+        StarRating(s.stars, s::setStars)
         Text(
-            text = when {
-                stars == 0 -> stringResource(R.string.kit_review_tap_star)
-                reviewAsk.answerFor(stars) == Answer.RATE -> stringResource(R.string.kit_review_hint_good)
-                else -> stringResource(R.string.kit_review_hint_low)
-            },
+            text = s.hint,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -99,15 +195,10 @@ internal fun ReviewPromptBody(reviewAsk: ReviewAsk, stars: Int, onStars: (Int) -
 
 /** "Rate it" before a star is picked, then "Rate on Google Play" or "Send feedback". */
 @Composable
-internal fun ReviewConfirmButton(reviewAsk: ReviewAsk, stars: Int, filled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val label = when {
-        stars == 0 -> stringResource(R.string.kit_review_rate)
-        reviewAsk.answerFor(stars) == Answer.RATE -> stringResource(R.string.kit_review_rate_play)
-        reviewAsk.answerFor(stars) == Answer.FEEDBACK -> stringResource(R.string.kit_review_send_feedback)
-        else -> stringResource(R.string.kit_review_later)
-    }
-    if (filled) Button(onClick = onClick, enabled = stars > 0, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-    else TextButton(onClick = onClick, enabled = stars > 0, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+internal fun ReviewConfirmButton(s: ReviewPromptState, filled: Boolean, modifier: Modifier = Modifier) {
+    val label = s.confirmLabel
+    if (filled) Button(onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    else TextButton(onClick = s::confirm, enabled = s.canConfirm, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 /**

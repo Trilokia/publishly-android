@@ -50,7 +50,7 @@ Recorded from the sample app in [`sample/`](sample) (section 11) on an API 33 em
 | Module | What's in it |
 | --- | --- |
 | `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`. Depends on `kit`. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
 | `sample` | "Sample App": a Material You app with every feature behind a button, sample update and release-notes text, the real Trilokia promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
@@ -65,7 +65,7 @@ Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
 6. [Your own apps' promo](#6-your-own-apps-promo-apppromos)
 7. [What's new](#7-whats-new-whatsnew)
 8. [Open source licences](#8-open-source-licences)
-9. [Theme](#9-theme-one-look-for-every-element-kittheme), [customising each element](#customise-each-element)
+9. [Theme](#9-theme-one-look-for-every-element-kittheme), [customising each element](#customise-each-element), [drawing the prompts yourself](#draw-the-prompts-yourself)
 10. [Before you ship](#10-before-you-ship)
 11. [The sample app](#11-the-sample-app)
 12. [Build and test](#12-build-and-test)
@@ -394,7 +394,7 @@ lifecycleScope.launch {
 }
 ```
 
-`promos.apps()` gives the not-installed list for your own UI, `promos.allApps()` every app with its installed flag (`PromoAppEntry`), `promos.launch(context, app)` opens an installed one, `PromoIcons.load(context, url)` the icons (cached on disk). `showInstalled = false` on the row or the list hides installed apps, as 1.0 did; `MoreAppsDefaults.style(showInstalledLabel = false, installedContainer = …, installedContent = …)` changes the label. The featured dialog never promotes an installed app. The featured dialog rests 7 days between showings (`featuredRestMs`), and "Not now" ends it for that app on that phone.
+`promos.apps()` gives the not-installed list for your own UI, `promos.allApps()` every app with its installed flag (`PromoAppEntry`), `promos.launch(context, app)` opens an installed one, `PromoIcons.load(context, url)` the icons (cached on disk). `showInstalled = false` on the row or the list hides installed apps, as 1.0 did; `MoreAppsDefaults.style(showInstalledLabel = false, installedContainer = …, installedContent = …)` changes the label. The featured dialog never promotes an installed app. It rests 7 days between showings (`featuredRestMs`), "Not now" included; `promos.dismiss(app)` (or `never()` on [its state](#draw-the-prompts-yourself)) ends it for that app on that phone.
 
 <br clear="right">
 
@@ -598,6 +598,55 @@ When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { 
 
 The sample's More apps and Licences tabs have a switch for every layout. The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
 
+### Draw the prompts yourself
+
+Styles and layouts keep the kit's Material look. An app with a look of its own (hand-drawn, a game's UI, a brand) can draw every prompt itself and leave the logic to the kit: when to show, what each button does, marking it shown, the rests. Give the prompt a `content` lambda; the kit then draws nothing of its own (no dialog window, no sheet, no Material surface) and calls the lambda only while there is something to show:
+
+```mermaid
+flowchart LR
+    kit[Publishly Kit decides: due? rested? installed? pending? downloaded?] -- "something to show" --> slot[Your content lambda: the data and the answers]
+    slot -- "confirm, later, never · onUpdate, onLater · onGet, onNotNow · onClose · onRestart" --> kit
+    kit -- "Play, the mail app, the store, a rest, a stop, marked seen" --> done([The same outcome as the kit's own prompt])
+```
+
+```kotlin
+ReviewPrompt(reviewAsk) { s ->                        // s: ReviewPromptState
+    Dialog(onDismissRequest = s::later) {
+        MyCard {
+            MyTitle(s.title)                           // "Enjoying Sample App?"
+            MyStars(s.stars, onPick = s::setStars)
+            MyHint(s.hint)                             // "Tap a star", then where the rating goes
+            MyButton(s.confirmLabel, enabled = s.canConfirm, onClick = s::confirm)   // "Rate on Play" or "Send feedback"
+            MyLink(s.laterLabel, s::later)
+            MyLink(s.neverLabel, s::never)
+        }
+    }
+}
+UpdateFlow(updates) { info, cancelable, onUpdate, onLater ->
+    Dialog(onDismissRequest = { if (cancelable) onLater() }) { MyUpdateCard(info, onUpdate, onLater.takeIf { cancelable }) }
+}
+UpdatePrompt(info, onDismiss = { shown = null }) { info, cancelable, onUpdate, onLater -> ... }   // the same, when you run the check
+UpdateReadyBar(updates) { onRestart -> MyBar(onRestart) }
+FeaturedPromoDialog(promos) { featured, onGet, onNotNow -> ... }   // featured.app, featured.title, featured.message
+WhatsNewDialog(whatsNew) { notes, onClose -> ... }
+```
+
+- Without a lambda every prompt looks as it always has. `ReviewPromptDialog` and `ReviewPromptSheet` take the same lambda as `ReviewPrompt`; with it, all three are the same, and `presentation` no longer matters.
+- `onUpdate` opens the update's url and leaves the prompt up, so a forced update can't be skipped; `cancelable` says whether back and a tap outside may call `onLater`.
+- The review state's labels come from the kit's own strings, so they are translated and yours to change. For the other prompts use the same strings (`stringResource(inc.trilokia.publishly.kit.R.string.kit_update_now)`) or your own words.
+
+The state holders behind the slots, for a prompt that isn't a dialog at all (a card on the page, a banner):
+
+```kotlin
+val review = rememberReviewPromptState(reviewAsk)   // visible, stars, setStars(), title, message, hint, confirmLabel, confirm(), later(), never()
+val update = rememberUpdateFlowState(updates)       // runs the check once; info, update(), later()
+val featured = rememberFeaturedPromoState(promos)   // featured, get(), notNow(), never(): don't show this app again
+val news = rememberWhatsNewDialogState(whatsNew)    // notes, title, close(); show(notes) for a "What's new in this version" row
+WhatsNewDialog(news)                                 // the kit's dialog, or your lambda, on that state
+```
+
+The sample's Home → Custom look screen draws every one of them as a plain boxed dialog, with foundation only, so the point is the mechanism and not any one app's design.
+
 ## 10. Before you ship
 
 - **Update JSON** hosted and reachable over HTTPS; bump `latestVersionCode` with every release, after the Play rollout reaches everyone (or the dialog sends people to a Play page that still has the old version).
@@ -619,6 +668,7 @@ The sample's More apps and Licences tabs have a switch for every layout. The pla
 | Home: Update available | `UpdatePrompt` with the bundled update file, in the chosen style |
 | Home: Rate this app | `ReviewAsk`, always due here: our prompt (in the chosen style), then Play's sheet or the Play listing |
 | Home: This version's notes | `whatsNew.showDialog`, forced, so it shows every time |
+| Home: Custom look | Every prompt drawn by the app through its `content` slot, and a rating card built from `rememberReviewPromptState` |
 | Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
 | More apps tab | `MoreAppsList`, every layout, with a switch to show or hide the apps the phone already has |
 | What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |

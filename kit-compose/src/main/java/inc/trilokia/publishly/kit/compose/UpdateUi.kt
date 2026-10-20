@@ -1,5 +1,7 @@
 package inc.trilokia.publishly.kit.compose
 
+import android.content.Context
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,6 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,29 +48,93 @@ fun UpdateFlow(
     snackbarHostState: SnackbarHostState? = null,
     onSettled: () -> Unit = {},
 ) {
-    val settled by rememberUpdatedState(onSettled)
-    var pending by remember(updates) { mutableStateOf<UpdateInfo?>(null) }
+    val s = rememberUpdateFlowState(updates, onSettled)
+    s.info?.let { info ->
+        UpdatePrompt(info, presentation, cancelable, snackbarHostState, onDismiss = s::later)
+    }
+}
+
+/**
+ * [UpdateFlow] with the prompt drawn by you: the same check, the same [onSettled], and [content]
+ * instead of the kit's dialog. The kit draws nothing of its own; [content] is called while the JSON
+ * file's newer version waits for an answer, with the version, whether it may be put away, and the
+ * two answers (`onUpdate` opens the version's url and leaves the prompt up, `onLater` puts it away).
+ *
+ * ```kotlin
+ * UpdateFlow(updates) { info, cancelable, onUpdate, onLater ->
+ *     Dialog(onDismissRequest = { if (cancelable) onLater() }) { MyUpdateCard(info, onUpdate, onLater) }
+ * }
+ * ```
+ */
+@Composable
+fun UpdateFlow(
+    updates: Updates,
+    cancelable: Boolean = true,
+    onSettled: () -> Unit = {},
+    content: @Composable (info: UpdateInfo, cancelable: Boolean, onUpdate: () -> Unit, onLater: () -> Unit) -> Unit,
+) {
+    val s = rememberUpdateFlowState(updates, onSettled)
+    s.info?.let { info -> content(info, cancelable, s::update, s::later) }
+}
+
+/**
+ * The update flow's state, for a prompt built from scratch: [rememberUpdateFlowState] runs the check
+ * once, and [info] is the newer version while its prompt should be up.
+ */
+@Stable
+class UpdateFlowState internal constructor(private val context: Context, private val onSettled: State<() -> Unit>) {
+    /** The newer version your JSON file names, while its prompt should be up; null before the check, when there is no news, and after [later]. */
+    var info: UpdateInfo? by mutableStateOf(null)
+        internal set
+
+    /** "Update": opens the version's url (a Play page or an APK). The prompt stays up, so a forced update can't be skipped. */
+    fun update() {
+        info?.let { JsonUpdates.open(context, it.url) }
+    }
+
+    /** "Later": puts the prompt away, and the flow is settled. */
+    fun later() {
+        if (info == null) return
+        info = null
+        onSettled.value()
+    }
+}
+
+/**
+ * Runs [Updates.check] once and keeps the answer in an [UpdateFlowState], for your own prompt.
+ * [onSettled] fires once there is nothing (more) to show, as in [UpdateFlow].
+ */
+@Composable
+fun rememberUpdateFlowState(updates: Updates, onSettled: () -> Unit = {}): UpdateFlowState {
+    val context = LocalContext.current
+    val settled = rememberUpdatedState(onSettled)
+    val state = remember(updates) { UpdateFlowState(context, settled) }
     LaunchedEffect(updates) {
         val outcome = updates.check()
-        if (outcome is Updates.Outcome.JsonUpdate) pending = outcome.info else settled()
+        if (outcome is Updates.Outcome.JsonUpdate) state.info = outcome.info else settled.value()
     }
-    pending?.let { info ->
-        UpdatePrompt(info, presentation, cancelable, snackbarHostState, onDismiss = { pending = null; settled() })
-    }
+    return state
 }
 
 /** [UpdateReadyBar] for the combined flow: the same bar, fed by `updates.play`. */
 @Composable
-fun UpdateReadyBar(updates: Updates, modifier: Modifier = Modifier) = UpdateReadyBar(updates.play, modifier)
+fun UpdateReadyBar(updates: Updates, modifier: Modifier = Modifier, content: (@Composable (onRestart: () -> Unit) -> Unit)? = null) =
+    UpdateReadyBar(updates.play, modifier, content)
 
 /**
  * "An update has been downloaded. Restart": shows itself once [PlayUpdates.downloaded] turns
  * true and nothing before. Put it above the bottom bar, or anywhere it won't cover a button.
+ * [content] draws the bar your way: called at the same moment, inside [modifier], with the
+ * restart action (which installs the update and reopens the app).
  */
 @Composable
-fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier) {
+fun UpdateReadyBar(updates: PlayUpdates, modifier: Modifier = Modifier, content: (@Composable (onRestart: () -> Unit) -> Unit)? = null) {
     val downloaded by updates.downloaded.collectAsStateWithLifecycle()
     if (!downloaded) return
+    if (content != null) {
+        Box(modifier) { content(updates::complete) }
+        return
+    }
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.primaryContainer,

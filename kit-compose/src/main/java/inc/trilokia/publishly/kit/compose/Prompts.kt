@@ -19,10 +19,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -79,6 +76,24 @@ fun UpdatePrompt(
     }
 }
 
+/**
+ * The update prompt drawn by you. The kit draws nothing of its own (no dialog window, no Material
+ * surface); [content] gets the version, whether it may be put away, and the two answers: `onUpdate`
+ * opens the version's url (a Play page or an APK) and leaves the prompt up, `onLater` is
+ * [onDismiss]. Wrap it in your own `Dialog` or sheet, and let back or a tap outside call `onLater`
+ * only when `cancelable`.
+ */
+@Composable
+fun UpdatePrompt(
+    info: UpdateInfo,
+    cancelable: Boolean = true,
+    onDismiss: () -> Unit,
+    content: @Composable (info: UpdateInfo, cancelable: Boolean, onUpdate: () -> Unit, onLater: () -> Unit) -> Unit,
+) {
+    val context = LocalContext.current
+    content(info, cancelable, { JsonUpdates.open(context, info.url) }, onDismiss)
+}
+
 /** The bottom-sheet version of the update prompt: title, release notes, Later / Update. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,13 +125,22 @@ fun UpdateSheet(info: UpdateInfo, onDismiss: () -> Unit, cancelable: Boolean = t
  * Our own "Enjoying the app?" prompt in the chosen [presentation], shown while [ReviewAsk.prompt]
  * is true (after [ReviewAsk.requestIfDue] or [ReviewAsk.requestPrompt]). The snackbar has room
  * for "Rate it" only: putting it away counts as "Not now".
+ *
+ * [content] draws the prompt your way instead, whatever the [presentation]: the kit draws nothing
+ * of its own and calls it while the prompt is up, with the [ReviewPromptState] (stars, labels,
+ * `confirm()`, `later()`, `never()`). Wrap it in your own `Dialog`, sheet or banner.
  */
 @Composable
 fun ReviewPrompt(
     reviewAsk: ReviewAsk,
     presentation: Presentation = Presentation.Dialog,
     snackbarHostState: SnackbarHostState? = null,
+    content: (@Composable (ReviewPromptState) -> Unit)? = null,
 ) {
+    if (content != null) {
+        ReviewPromptDialog(reviewAsk, content)
+        return
+    }
     when (presentation) {
         Presentation.Dialog -> ReviewPromptDialog(reviewAsk)
         Presentation.BottomSheet -> ReviewPromptSheet(reviewAsk)
@@ -145,29 +169,33 @@ fun ReviewPrompt(
     }
 }
 
-/** The bottom-sheet version of the review prompt, with all three answers. */
+/**
+ * The bottom-sheet version of the review prompt, with all three answers. [content] works as in
+ * [ReviewPromptDialog]: with it the kit draws no sheet, only calls it while the prompt is up.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewPromptSheet(reviewAsk: ReviewAsk) {
-    val visible by reviewAsk.prompt.collectAsStateWithLifecycle()
-    if (!visible) return
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
-    var stars by rememberSaveable { mutableIntStateOf(0) }
+fun ReviewPromptSheet(reviewAsk: ReviewAsk, content: (@Composable (ReviewPromptState) -> Unit)? = null) {
+    val s = rememberReviewPromptState(reviewAsk)
+    if (!s.visible) return
+    if (content != null) {
+        content(s)
+        return
+    }
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = { reviewAsk.answer(activity, Answer.LATER) }, sheetState = state) {
+    ModalBottomSheet(onDismissRequest = s::later, sheetState = state) {
         Column(
             Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.kit_review_title, reviewAsk.appName), style = MaterialTheme.typography.titleLarge)
-            ReviewPromptBody(reviewAsk, stars) { stars = it }
+            Text(s.title, style = MaterialTheme.typography.titleLarge)
+            ReviewPromptBody(s)
             // The answer that matters gets the full width, so "Rate on Play" stays on one line at any
             // font size; the two ways out share the line under it
-            ReviewConfirmButton(reviewAsk, stars, filled = true, modifier = Modifier.fillMaxWidth()) { reviewAsk.answerRating(activity, stars) }
+            ReviewConfirmButton(s, filled = true, modifier = Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.NEVER) }) { Text(stringResource(R.string.kit_review_never), maxLines = 1) }
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.LATER) }) { Text(stringResource(R.string.kit_review_later), maxLines = 1) }
+                TextButton(onClick = s::never) { Text(s.neverLabel, maxLines = 1) }
+                TextButton(onClick = s::later) { Text(s.laterLabel, maxLines = 1) }
             }
         }
     }

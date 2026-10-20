@@ -1,5 +1,6 @@
 package inc.trilokia.publishly.kit.compose
 
+import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -149,25 +151,73 @@ fun ReleaseNoteRow(note: ReleaseNote, style: WhatsNewStyle = WhatsNewDefaults.st
 /**
  * Shows this version's notes once after an update ([WhatsNew.pending]) and marks them seen on
  * close. Draws nothing when nothing is pending. Put it anywhere in the composition.
+ *
+ * [content] draws the dialog your way: the kit then draws nothing of its own and calls it while
+ * there are notes to show, with the notes (newest first) and `onClose` (which marks them seen).
+ * Wrap it in your own `Dialog`; back and a tap outside should call `onClose` too.
  */
 @Composable
-fun WhatsNewDialog(whatsNew: WhatsNew) {
-    val context = LocalContext.current
-    var pending by remember(whatsNew) { mutableStateOf<List<ReleaseNote>>(emptyList()) }
-    LaunchedEffect(whatsNew) { pending = whatsNew.pending() }
-    if (pending.isEmpty()) return
-    val close = {
-        whatsNew.markSeen()
-        pending = emptyList()
+fun WhatsNewDialog(whatsNew: WhatsNew, content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null) =
+    WhatsNewDialog(rememberWhatsNewDialogState(whatsNew), content)
+
+/**
+ * [WhatsNewDialog] fed by a [WhatsNewDialogState], so the app can also open it on demand
+ * ([WhatsNewDialogState.show]), say from a "What's new in this version" row.
+ */
+@Composable
+fun WhatsNewDialog(state: WhatsNewDialogState, content: (@Composable (notes: List<ReleaseNote>, onClose: () -> Unit) -> Unit)? = null) {
+    val notes = state.notes
+    if (notes.isEmpty()) return
+    if (content != null) {
+        content(notes, state::close)
+        return
     }
     AlertDialog(
-        onDismissRequest = close,
-        title = { Text(stringResource(R.string.kit_whats_new_in, WhatsNew.currentVersionName(context))) },
+        onDismissRequest = state::close,
+        title = { Text(state.title) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(WhatsNew.text(pending))
+                Text(WhatsNew.text(notes))
             }
         },
-        confirmButton = { TextButton(onClick = close) { Text(stringResource(R.string.kit_ok)) } },
+        confirmButton = { TextButton(onClick = state::close) { Text(stringResource(R.string.kit_ok)) } },
     )
+}
+
+/**
+ * The notes the after-update dialog shows, for a dialog built from scratch:
+ * [rememberWhatsNewDialogState] reads [WhatsNew.pending] once, and [notes] is non-empty while the
+ * dialog should be up.
+ */
+@Stable
+class WhatsNewDialogState internal constructor(private val whatsNew: WhatsNew, private val context: Context) {
+    /** The notes to show, newest first: this update's, or the ones passed to [show]. Empty when there is nothing to show. */
+    var notes: List<ReleaseNote> by mutableStateOf(emptyList())
+        internal set
+
+    /** "What's new in 1.2", for the title. */
+    val title: String get() = context.getString(R.string.kit_whats_new_in, WhatsNew.currentVersionName(context))
+
+    /** Shows [notes] now, pending or not: a "What's new in this version" row passes `whatsNew.notes().take(1)`. */
+    fun show(notes: List<ReleaseNote>) {
+        this.notes = notes
+    }
+
+    /** "OK": marks this version's notes seen ([WhatsNew.markSeen]) and puts the dialog away. */
+    fun close() {
+        whatsNew.markSeen()
+        notes = emptyList()
+    }
+}
+
+/** Reads [WhatsNew.pending] once into a [WhatsNewDialogState], for your own dialog. */
+@Composable
+fun rememberWhatsNewDialogState(whatsNew: WhatsNew): WhatsNewDialogState {
+    val context = LocalContext.current
+    val state = remember(whatsNew) { WhatsNewDialogState(whatsNew, context) }
+    LaunchedEffect(whatsNew) {
+        val pending = whatsNew.pending()
+        if (pending.isNotEmpty()) state.notes = pending
+    }
+    return state
 }

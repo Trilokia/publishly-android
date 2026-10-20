@@ -1,5 +1,6 @@
 package inc.trilokia.publishly.kit.compose
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -45,6 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -475,27 +477,78 @@ private fun AppPromos.openOrLaunch(context: android.content.Context, entry: Prom
 /**
  * Shows the feed's featured app in a dialog when it is due (see [AppPromos.featured]), once per
  * composition. Place it on the home screen; it decides for itself whether to appear.
+ *
+ * [content] draws the prompt your way: the kit then draws nothing of its own and calls it while the
+ * featured app waits for an answer, with the app and its words ([FeaturedPromo]) and the two answers
+ * (`onGet` opens its Play page, `onNotNow` lets it rest). It counts as shown once it is due, as the
+ * kit's own dialog does. [rememberFeaturedPromoState] has "Don't show again" too.
  */
 @Composable
-fun FeaturedPromoDialog(promos: AppPromos) {
-    val context = LocalContext.current
-    var featured by remember(promos) { mutableStateOf<FeaturedPromo?>(null) }
-    LaunchedEffect(promos) { featured = promos.featured() }
-    val f = featured ?: return
-    // Counted as shown only now that it is really on screen
-    LaunchedEffect(f) { promos.markFeaturedShown(f.app) }
+fun FeaturedPromoDialog(
+    promos: AppPromos,
+    content: (@Composable (featured: FeaturedPromo, onGet: () -> Unit, onNotNow: () -> Unit) -> Unit)? = null,
+) {
+    val s = rememberFeaturedPromoState(promos)
+    val f = s.featured ?: return
+    if (content != null) {
+        content(f, s::get, s::notNow)
+        return
+    }
     AlertDialog(
-        onDismissRequest = { featured = null },
+        onDismissRequest = s::notNow,
         icon = { PromoIcon(f.app.iconUrl, size = 64.dp) },
         title = { Text(f.title, textAlign = TextAlign.Center) },
         text = { Text(f.message) },
         confirmButton = {
-            TextButton(onClick = { promos.open(context, f.app); featured = null }) { Text(stringResource(R.string.kit_get)) }
+            TextButton(onClick = s::get) { Text(stringResource(R.string.kit_get)) }
         },
         dismissButton = {
-            TextButton(onClick = { featured = null }) { Text(stringResource(R.string.kit_not_now)) }
+            TextButton(onClick = s::notNow) { Text(stringResource(R.string.kit_not_now)) }
         },
     )
+}
+
+/**
+ * The featured app and its answers, for a prompt built from scratch: [rememberFeaturedPromoState]
+ * asks [AppPromos.featured] once, and [featured] is the app while its prompt should be up.
+ */
+@Stable
+class FeaturedPromoState internal constructor(private val promos: AppPromos, private val context: Context) {
+    /** The featured app while its prompt should be up: due (see [AppPromos.featured]) and not answered yet. */
+    var featured: FeaturedPromo? by mutableStateOf(null)
+        internal set
+
+    /** "Get": opens its Play page (or the feed's `url`) and puts the prompt away. */
+    fun get() {
+        featured?.let { promos.open(context, it.app) }
+        featured = null
+    }
+
+    /** "Not now": puts the prompt away; the app rests for `featuredRestMs` (a week by default). */
+    fun notNow() {
+        featured = null
+    }
+
+    /** "Don't show again": never features this app on this phone ([AppPromos.dismiss]). */
+    fun never() {
+        featured?.let { promos.dismiss(it.app) }
+        featured = null
+    }
+}
+
+/**
+ * Asks [AppPromos.featured] once and keeps the answer in a [FeaturedPromoState], for your own
+ * prompt. The app counts as shown as soon as it is due, so call this only where you draw it.
+ */
+@Composable
+fun rememberFeaturedPromoState(promos: AppPromos): FeaturedPromoState {
+    val context = LocalContext.current
+    val state = remember(promos) { FeaturedPromoState(promos, context) }
+    LaunchedEffect(promos) { state.featured = promos.featured() }
+    // Counted as shown only now that it is really there to draw
+    val due = state.featured
+    LaunchedEffect(due) { due?.let { promos.markFeaturedShown(it.app) } }
+    return state
 }
 
 @Composable
