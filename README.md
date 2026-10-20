@@ -247,7 +247,8 @@ playUpdates.checkQuietly()         // flexible flow: downloads when Play has a n
 ```
 
 - `playUpdates.downloaded` is a `StateFlow<Boolean>`; it turns true when the download lands. Show "Restart" and call `playUpdates.complete()`. Compose apps drop `UpdateReadyBar(playUpdates)` into the layout and get both.
-- For a "Check for updates" row in Settings, `playUpdates.checkNow { result -> }` reports `UP_TO_DATE`, `FLOW_STARTED`, `DOWNLOADED` or `FAILED`.
+- For a "Check for updates" row in Settings, `playUpdates.checkNow { result -> }` reports `UP_TO_DATE`, `FLOW_STARTED`, `DOWNLOADED` or `FAILED`. `playUpdates.checkNow()` is the same as a suspend call: it waits for Play's screen to close and returns an [`UpdateState`](#one-state-for-the-whole-flow-updatestate).
+- `playUpdates.state` follows Play's side as an `UpdateState`, download progress included.
 
 Play updates only work for apps installed from Play, and only once a higher versionCode is live on a track your test account is on. On an emulator or a side-loaded build, `checkNow` reports `FAILED`.
 
@@ -271,9 +272,46 @@ lifecycleScope.launch {
 }
 ```
 
-`check()` returns the newer version or null. The last server answer is kept, so an offline phone still sees the dialog it saw yesterday. Compose apps show `UpdateDialog(info, onDismiss)` instead of `showDialog`. Pass `cancelable = false` to either for a forced update.
+`check()` returns the newer version or null; `checkState()` says the same as an `UpdateState` (`ServerUpdate`, `UpToDate`, or `Failed` when nothing could be read). The last server answer is kept, so an offline phone still sees the dialog it saw yesterday. Compose apps show `UpdateDialog(info, onDismiss)` instead of `showDialog`. Pass `cancelable = false` to either for a forced update.
 
 <br clear="right">
+
+### One state for the whole flow (`UpdateState`)
+
+`updates.state` is a `StateFlow<UpdateState>` that follows the flow above, whichever source answers, so a "Check for updates" row or a progress bar watches one thing. The start-up check (`check()`, `UpdateFlow`) feeds it, and so does `checkNow()`, the loud check for Settings: Play's full-screen flow when Play has a newer version, your JSON file when Play can't answer.
+
+```mermaid
+flowchart LR
+    idle([Idle]) --> checking[Checking]
+    checking -- "Play: nothing newer" --> uptodate([UpToDate])
+    checking -- "Play: newer, the user says yes" --> downloading["Downloading(bytes, total)"]
+    downloading --> downloaded[Downloaded] -- Restart --> installed([New version installed])
+    checking -- "Play: the user says no" --> idle
+    checking -- "Play can't answer: your JSON file" --> json{Newer versionCode?}
+    json -- yes --> server["ServerUpdate(info)"]
+    json -- no --> uptodate
+    json -- "nothing to read" --> failed["Failed(reason)"]
+```
+
+```kotlin
+// Compose: a Settings row
+val state by updates.state.collectAsStateWithLifecycle()
+when (val s = state) {
+    UpdateState.Checking -> Text("Checking…")
+    is UpdateState.Downloading -> LinearProgressIndicator(progress = { s.fraction ?: 0f })   // fraction is null until Play knows the size
+    UpdateState.Downloaded -> Button(onClick = updates::complete) { Text("Restart") }
+    is UpdateState.ServerUpdate -> Text("Version ${s.info.versionName} is available")
+    UpdateState.UpToDate -> Text("This is the latest version")
+    is UpdateState.Failed -> Text("Couldn't check")   // s.reason is for your logs
+    UpdateState.Idle -> {}
+}
+Button(onClick = { scope.launch { updates.checkNow() } }) { Text("Check for updates") }
+
+// View: the same flow, collected
+lifecycleScope.launch { updates.state.collect { render(it) } }
+```
+
+`updates.play.state` is Play's side alone. `downloaded` and the callback `checkNow { }` work as before. The sample's Custom look screen has an "Update state" card with "Check now".
 
 ## 5. In-app review
 

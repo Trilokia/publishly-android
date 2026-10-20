@@ -4,7 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.os.Build
 import androidx.activity.ComponentActivity
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The whole update flow in one call, Play first and your own JSON file as the fallback:
@@ -31,7 +34,8 @@ import kotlinx.coroutines.flow.StateFlow
  * Build it in `onCreate` (it holds a [PlayUpdates]). [jsonUrl] may be null for an app that is
  * only ever on Play; [bundledJson] is a copy of the update file shipped in `assets/`, used until
  * the server has answered once (see [JsonUpdates]). [check] is safe to call on every start:
- * Play's own sheet rations itself, and the JSON dialog is yours to show.
+ * Play's own sheet rations itself, and the JSON dialog is yours to show. [checkNow] is the
+ * "Check for updates" row; [state] follows both as one [UpdateState], whichever source answers.
  */
 class Updates(activity: ComponentActivity, jsonUrl: String?, bundledJson: String? = null) {
     /** What [check] found. Only [JsonUpdate] needs the app to show something. */
@@ -58,17 +62,73 @@ class Updates(activity: ComponentActivity, jsonUrl: String?, bundledJson: String
     /** Play's download has landed; offer "Restart" and call [complete]. Same as `play.downloaded`. */
     val downloaded: StateFlow<Boolean> get() = play.downloaded
 
+    private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
+
+    /**
+     * The whole flow as one value: [UpdateState.Checking] while either source is asked, then
+     * Play's answer ([UpdateState.UpToDate], [UpdateState.Downloading] with its progress,
+     * [UpdateState.Downloaded]) or, when Play can't answer, the JSON file's
+     * ([UpdateState.ServerUpdate], [UpdateState.UpToDate]); [UpdateState.Failed] when neither could.
+     */
+    val state: StateFlow<UpdateState> = _state.asStateFlow()
+
+    // While a check runs, it decides the state itself: a Play failure is only a step on the way to the JSON file
+    @Volatile
+    private var checking = false
+
+    init {
+        // Play's answers that come later (the download's progress, its consent sheet closing) carry on here
+        play.onState = { s -> if (!checking || s is UpdateState.Downloading || s is UpdateState.Downloaded) _state.value = s }
+    }
+
     /** Runs the flow above once. Never throws; a dead network just means [Outcome.Nothing]. */
-    suspend fun check(): Outcome {
+    suspend fun check(): Outcome = checking {
         val fromPlay = installedFromPlay(app)
         val playResult = if (fromPlay) play.check() else null
-        return when (route(fromPlay, playResult)) {
-            Route.PLAY_DOWNLOADING -> Outcome.PlayDownloading
-            Route.PLAY_DOWNLOADED -> Outcome.PlayDownloaded
-            Route.UP_TO_DATE -> Outcome.UpToDate
-            Route.CHECK_JSON -> json?.check()?.let { Outcome.JsonUpdate(it) } ?: Outcome.Nothing
+        when (route(fromPlay, playResult)) {
+            Route.PLAY_DOWNLOADING -> play.state.value to Outcome.PlayDownloading
+            Route.PLAY_DOWNLOADED -> UpdateState.Downloaded to Outcome.PlayDownloaded
+            Route.UP_TO_DATE -> UpdateState.UpToDate to Outcome.UpToDate
+            Route.CHECK_JSON -> {
+                val s = jsonState(fromPlay)
+                s to ((s as? UpdateState.ServerUpdate)?.let { Outcome.JsonUpdate(it.info) } ?: Outcome.Nothing)
+            }
         }
     }
+
+    /**
+     * The "Check for updates" row: Play's full-screen flow when Play has a newer version
+     * ([PlayUpdates.checkNow], which waits for the user to close it), your JSON file when Play
+     * can't answer. Returns the state it ends in, also in [state]: show [UpdateState.ServerUpdate]'s
+     * prompt, say "up to date" for [UpdateState.UpToDate]. Never throws.
+     */
+    suspend fun checkNow(): UpdateState = checking {
+        val fromPlay = installedFromPlay(app)
+        val playState = if (fromPlay) play.checkNow() else null
+        // Same rule as the quiet check: only a Play that can't answer sends us to the JSON file
+        val s = if (playState == null || playState is UpdateState.Failed) jsonState(fromPlay) else playState
+        s to s
+    }
+
+    private suspend fun <T> checking(run: suspend () -> Pair<UpdateState, T>): T {
+        checking = true
+        _state.value = UpdateState.Checking
+        try {
+            val (state, result) = run()
+            _state.value = state
+            return result
+        } catch (e: CancellationException) {
+            if (_state.value == UpdateState.Checking) _state.value = UpdateState.Idle
+            throw e
+        } finally {
+            checking = false
+        }
+    }
+
+    private suspend fun jsonState(fromPlay: Boolean): UpdateState =
+        json?.checkState()
+            ?: (play.state.value as? UpdateState.Failed).takeIf { fromPlay }
+            ?: UpdateState.Failed("Not installed from Play, and no update file to ask")
 
     /** The plain-dialog version of the JSON update prompt, for View-based apps. */
     fun showDialog(activity: Activity, info: UpdateInfo, cancelable: Boolean = true) {

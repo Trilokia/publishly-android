@@ -51,19 +51,23 @@ class JsonUpdates(context: Context, private val url: String?, private val bundle
     private val prefs = app.getSharedPreferences("kit_json_updates", Context.MODE_PRIVATE)
 
     /** The newer version, or null when this build is the latest (or nothing is known). */
-    suspend fun check(): UpdateInfo? {
-        val current = currentVersionCode(app)
+    suspend fun check(): UpdateInfo? = (checkState() as? UpdateState.ServerUpdate)?.info
+
+    /**
+     * [check] as an [UpdateState]: [UpdateState.ServerUpdate] for a newer version,
+     * [UpdateState.UpToDate] when this build is the latest, [UpdateState.Failed] when nothing could
+     * be read (no server answer, nothing remembered, no bundled copy).
+     */
+    suspend fun checkState(): UpdateState {
+        var failure: String? = null
         val fetched = url?.let { u ->
             runCatching { fetch(u) }
-                .onFailure { Log.w(TAG, "Update check failed: $it") }
+                .onFailure { failure = it.toString(); Log.w(TAG, "Update check failed: $it") }
                 .getOrNull()
         }
-        if (fetched != null) {
-            remember(fetched)
-            return fetched.takeIf { it.versionCode > current }
-        }
-        val known = remembered() ?: bundledJson?.let { runCatching { parse(it) }.getOrNull() }
-        return known?.takeIf { it.versionCode > current }
+        if (fetched != null) remember(fetched)
+        val known = fetched ?: remembered() ?: bundledJson?.let { runCatching { parse(it) }.getOrNull() }
+        return stateFor(known, currentVersionCode(app), failure)
     }
 
     /** The plain-dialog version of the update prompt, for View-based apps. */
@@ -101,6 +105,16 @@ class JsonUpdates(context: Context, private val url: String?, private val bundle
 
     companion object {
         private const val TAG = "PublishlyKit.JsonUpdates"
+
+        /**
+         * The answer for [known] (the server's file, the last one remembered, or the bundled copy)
+         * against this build's [currentCode]; [failure] says why there is nothing to read.
+         */
+        fun stateFor(known: UpdateInfo?, currentCode: Int, failure: String? = null): UpdateState = when {
+            known == null -> UpdateState.Failed(failure ?: "No update file to read")
+            known.versionCode > currentCode -> UpdateState.ServerUpdate(known)
+            else -> UpdateState.UpToDate
+        }
 
         /** Reads the JSON described above. Throws on anything missing or malformed. */
         fun parse(json: String): UpdateInfo {

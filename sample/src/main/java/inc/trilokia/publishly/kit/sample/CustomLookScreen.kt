@@ -25,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import inc.trilokia.publishly.kit.R as KitR
 import inc.trilokia.publishly.kit.compose.FeaturedPromoDialog
 import inc.trilokia.publishly.kit.compose.PromoIcon
@@ -64,10 +66,12 @@ import inc.trilokia.publishly.kit.promo.AppPromos
 import inc.trilokia.publishly.kit.promo.FeaturedPromo
 import inc.trilokia.publishly.kit.review.ReviewAsk
 import inc.trilokia.publishly.kit.update.UpdateInfo
+import inc.trilokia.publishly.kit.update.UpdateState
 import inc.trilokia.publishly.kit.update.Updates
 import inc.trilokia.publishly.kit.whatsnew.ReleaseNote
 import inc.trilokia.publishly.kit.whatsnew.WhatsNew
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * "Custom look": every prompt of the kit drawn by the app through its `content` slot. The kit
@@ -150,6 +154,7 @@ fun CustomLookScreen(updates: Updates, reviewAsk: ReviewAsk, promos: AppPromos, 
                     }
                 }
             }
+                        item { UpdateStateCard(updates) { forcedUpdate = it } }
                         item {
                 Group("A rating, from scratch") {
                     InlineRating(reviewAsk)
@@ -266,6 +271,43 @@ private fun OwnRestartBar(onRestart: () -> Unit) {
 }
 
 // ---- The state holders on the page itself ----
+
+/**
+ * `updates.state` as a "Check for updates" row would show it: one line per state, a progress bar
+ * while Play downloads. "Check now" is `updates.checkNow()`; when the JSON file has the news,
+ * [onServerUpdate] opens the app's own update prompt.
+ */
+@Composable
+private fun UpdateStateCard(updates: Updates, onServerUpdate: (UpdateInfo) -> Unit) {
+    val scope = rememberCoroutineScope()
+    val state by updates.state.collectAsStateWithLifecycle()
+    Group("Update state") {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                when (val s = state) {
+                    UpdateState.Idle -> "Not checked yet."
+                    UpdateState.Checking -> "Checking…"
+                    UpdateState.UpToDate -> "This is the latest version."
+                    is UpdateState.Downloading -> s.fraction?.let { "Downloading the update: ${(it * 100).roundToInt()}%" } ?: "Downloading the update…"
+                    UpdateState.Downloaded -> "Downloaded. Restart to finish."
+                    is UpdateState.ServerUpdate -> "Version ${s.info.versionName} is available."
+                    is UpdateState.Failed -> "Couldn't check. (${s.reason})"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            (state as? UpdateState.Downloading)?.let { d ->
+                d.fraction?.let { LinearProgressIndicator(progress = { it }, Modifier.fillMaxWidth()) } ?: LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+            if (state == UpdateState.Checking) LinearProgressIndicator(Modifier.fillMaxWidth())
+            Button(onClick = {
+                scope.launch {
+                    val s = updates.checkNow()
+                    if (s is UpdateState.ServerUpdate) onServerUpdate(s.info)
+                }
+            }) { Text("Check now") }
+        }
+    }
+}
 
 /** The review prompt's state on a card of the page: the same rules and answers, no dialog at all. */
 @Composable
