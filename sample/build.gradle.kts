@@ -33,8 +33,6 @@ android {
     buildFeatures {
         compose = true
     }
-    // The sample ships the template feed (promo/apps.json) as an asset, for when the server has none yet
-    sourceSets["main"].assets.directories.add("../promo")
 }
 
 dependencies {

@@ -118,11 +118,13 @@ class MainActivity : ComponentActivity() {
             this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE,
             feedbackEmail = "feedback@example.com",
         )
-        // Your own apps: the server copy when it exists, the bundled template (promo/apps.json) until then
+        // Your own apps: the server copy when it exists, the bundled copy until then. The bundled copy
+        // (assets/promo/apps.json, the repo's promo/apps.json with the icons shipped as assets) shows
+        // real icons on a new install with no network; the server feed names the web icons
         val promos = AppPromos(
             this,
             url = "https://www.trilokiainc.com/apps.json",
-            bundledJson = asset("apps.json"),
+            bundledJson = asset("promo/apps.json"),
         )
         // "What's new": sample release notes shipped in assets/ (a real app uses WhatsNewSource.Play(packageName)
         // or a JSON file on its server), plus a public GitHub repo's commits to show that source
@@ -134,7 +136,7 @@ class MainActivity : ComponentActivity() {
             this, minEvents = 1, minAgeMs = 0L, restMs = 0L, maxAsks = Int.MAX_VALUE,
             feedbackEmail = "feedback@example.com",
         )
-        val customPromos = AppPromos(this, url = "https://www.trilokiainc.com/apps.json", bundledJson = asset("apps.json"), featuredRestMs = 0L)
+        val customPromos = AppPromos(this, url = "https://www.trilokiainc.com/apps.json", bundledJson = asset("promo/apps.json"), featuredRestMs = 0L)
 
         setContent {
             SampleTheme {

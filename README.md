@@ -403,6 +403,25 @@ flowchart TD
 
 Only `package` and `name` are required. `url` sends "Get" somewhere other than the Play page. An optional top-level `"developer": "Trilokia Inc."` titles the lists "More apps from Trilokia Inc."; without it they read "More apps from us". The Play link carries the promoting app's package as the install referrer, so Play Console shows which app brought each install.
 
+#### Icons that work offline
+
+A web icon shows only once it has been downloaded, so a new install with no network gets grey squares. The bundled copy of the feed can point `icon` at a file inside the app instead, and keep the web copy as `iconUrl` for the apps that don't ship that file:
+
+```json
+{ "package": "inc.trilokia.cardjuggler", "name": "Card Juggler",
+  "icon": "asset:promo/cardjuggler.webp", "iconUrl": "https://play-lh.googleusercontent.com/...=s256" }
+```
+
+```mermaid
+flowchart LR
+    icon["icon: asset:promo/x.webp"] -- "in this app's assets/" --> shown([Shown at once, offline too])
+    icon -- "not shipped here, or not an asset" --> web["iconUrl (or icon, when it is a web URL)"]
+    web -- "downloaded once, kept in the cache folder" --> shown
+    web -- "no network yet" --> square([A soft square until it can be had])
+```
+
+Put the files under `src/main/assets/promo/` (192 px WebP, a few KB each; the sample's [assets/promo](sample/src/main/assets/promo) has the real ones). In your own cells, `rememberPromoIcon(app)` gives the icon as an `ImageBitmap?` (null while it loads) from the first source that can be had, and `PromoIcon(app)` draws it; `PromoIcons.load(context, app)` is the same for View code. The server copy of the feed can keep web icons only: apps on 1.x read `icon` as a URL and ignore `iconUrl`.
+
 ```kotlin
 val promos = AppPromos(
     context,
@@ -432,7 +451,7 @@ lifecycleScope.launch {
 }
 ```
 
-`promos.apps()` gives the not-installed list for your own UI, `promos.allApps()` every app with its installed flag (`PromoAppEntry`), `promos.launch(context, app)` opens an installed one, `PromoIcons.load(context, url)` the icons (cached on disk). `showInstalled = false` on the row or the list hides installed apps, as 1.0 did; `MoreAppsDefaults.style(showInstalledLabel = false, installedContainer = …, installedContent = …)` changes the label. The featured dialog never promotes an installed app. It rests 7 days between showings (`featuredRestMs`), "Not now" included; `promos.dismiss(app)` (or `never()` on [its state](#draw-the-prompts-yourself)) ends it for that app on that phone.
+`promos.apps()` gives the not-installed list for your own UI, `promos.allApps()` every app with its installed flag (`PromoAppEntry`), `promos.launch(context, app)` opens an installed one, `rememberPromoIcon(app)` / `PromoIcons.load(context, app)` the icons (an asset in the app, or the web, cached on disk). `showInstalled = false` on the row or the list hides installed apps, as 1.0 did; `MoreAppsDefaults.style(showInstalledLabel = false, installedContainer = …, installedContent = …)` changes the label. The featured dialog never promotes an installed app. It rests 7 days between showings (`featuredRestMs`), "Not now" included; `promos.dismiss(app)` (or `never()` on [its state](#draw-the-prompts-yourself)) ends it for that app on that phone.
 
 <br clear="right">
 
@@ -632,7 +651,7 @@ OpenSourceScreen(layout = OpenSourceLayout.ByLicence)              // List, Comp
 <img src="docs/screenshots/licences-bylicence.png" width="160" alt="Licences grouped by licence">
 </p>
 
-When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app, installed -> MyRow(app, installed) }`, `MoreAppsRow(promos) { app, installed -> MyCell(app, installed) }` (the data classes `ReleaseNote` and `PromoApp` carry everything), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
+When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app, installed -> MyRow(app, installed) }`, `MoreAppsRow(promos) { app, installed -> MyCell(app, installed) }` (the data classes `ReleaseNote` and `PromoApp` carry everything, and `rememberPromoIcon(app)` the icon), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
 
 The sample's More apps and Licences tabs have a switch for every layout. The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
 
@@ -696,7 +715,7 @@ The sample's Home → Custom look screen draws every one of them as a plain boxe
 
 ## 11. The sample app
 
-`./gradlew :sample:installDebug` puts "Sample App" on the phone: a Material You app laid out the Now in Android way, with the wallpaper's colours on Android 12 and up (a branded teal on older phones), a top app bar, and bottom navigation between four tabs. It needs no server of its own: the update file and the release notes are sample text shipped in `sample/src/main/assets/` (the update file offers 1.2 to this 1.1 build, so the update dialog shows), the promo feed is the real Trilokia one (apps already installed on the phone are left out), and the "GitHub commits" switch on the What's new tab reads a public repo.
+`./gradlew :sample:installDebug` puts "Sample App" on the phone: a Material You app laid out the Now in Android way, with the wallpaper's colours on Android 12 and up (a branded teal on older phones), a top app bar, and bottom navigation between four tabs. It needs no server of its own: the update file and the release notes are sample text shipped in `sample/src/main/assets/` (the update file offers 1.2 to this 1.1 build, so the update dialog shows), the promo feed is the real Trilokia one with its icons shipped as assets (apps already installed on the phone are left out), and the "GitHub commits" switch on the What's new tab reads a public repo.
 
 | Where | Shows |
 | --- | --- |

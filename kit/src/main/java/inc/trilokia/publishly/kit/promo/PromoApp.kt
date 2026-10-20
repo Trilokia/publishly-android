@@ -8,7 +8,11 @@ data class PromoApp(
     val packageName: String,
     val name: String,
     val tagline: String = "",
-    /** A square icon, 192–512 px. The Play listing's icon URL works. */
+    /**
+     * The feed's `"icon"`: a square icon, 192–512 px, as a web URL (the Play listing's icon URL
+     * works) or as a file in this app's `assets/` folder, `"asset:promo/cardjuggler.webp"`, which
+     * shows even on a new install with no network. [PromoIcons] reads both.
+     */
     val iconUrl: String? = null,
     /** Where "Get" goes when it isn't the Play page (your site, another store). */
     val url: String? = null,
@@ -16,6 +20,11 @@ data class PromoApp(
     val badge: String? = null,
     /** Higher shows first. */
     val priority: Int = 0,
+    /**
+     * The feed's `"iconUrl"`: a web copy of the icon, tried when [iconUrl] is an asset this app
+     * doesn't ship (one feed serves all your apps) or can't be read.
+     */
+    val iconFallbackUrl: String? = null,
 ) {
     /**
      * Where "Get" goes: [url], or the Play page. [from] (the promoting app's package) is attached
@@ -41,14 +50,16 @@ data class FeaturedPromo(val app: PromoApp, val title: String, val message: Stri
  *   "developer": "Trilokia Inc.",
  *   "apps": [
  *     { "package": "inc.trilokia.cardjuggler", "name": "Card Juggler", "tagline": "...",
- *       "icon": "https://.../icon.png", "badge": "New", "priority": 100 }
+ *       "icon": "https://.../icon.png", "badge": "New", "priority": 100 },
+ *     { "package": "...", "name": "...", "icon": "asset:promo/converter.webp", "iconUrl": "https://.../icon.png" }
  *   ],
  *   "featured": { "package": "inc.trilokia.cardjuggler", "title": "...", "message": "..." }
  * }
  * ```
  *
- * Only `package` and `name` are required; `featured` is optional. The repo's `promo/apps.json`
- * is a complete example.
+ * Only `package` and `name` are required; `featured` is optional. `icon` is a web URL or, for
+ * a copy shipped inside the app, `asset:` and its path under `assets/`; `iconUrl` is the web copy
+ * for when the asset isn't there. The repo's `promo/apps.json` is a complete example.
  */
 data class PromoFeed(
     val apps: List<PromoApp>,
@@ -70,6 +81,7 @@ data class PromoFeed(
                     name = a.getString("name"),
                     tagline = a.optString("tagline"),
                     iconUrl = a.optString("icon").ifEmpty { null },
+                    iconFallbackUrl = a.optString("iconUrl").ifEmpty { null },
                     url = a.optString("url").ifEmpty { null },
                     badge = a.optString("badge").ifEmpty { null },
                     priority = a.optInt("priority"),

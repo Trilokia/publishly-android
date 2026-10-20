@@ -240,7 +240,7 @@ private fun OwnUpdateDialog(info: UpdateInfo, cancelable: Boolean, onUpdate: () 
 @Composable
 private fun OwnFeaturedDialog(featured: FeaturedPromo, onGet: () -> Unit, onNotNow: () -> Unit) {
     OwnDialog(onDismissRequest = onNotNow) {
-        Box(Modifier.align(Alignment.CenterHorizontally).border(2.dp, Ink).padding(6.dp)) { PromoIcon(featured.app.iconUrl, size = 64.dp, corner = 0f) }
+        Box(Modifier.align(Alignment.CenterHorizontally).border(2.dp, Ink).padding(6.dp)) { PromoIcon(featured.app, size = 64.dp, corner = 0f) }
         OwnTitle(featured.title, align = TextAlign.Center)
         OwnBody(featured.message)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {

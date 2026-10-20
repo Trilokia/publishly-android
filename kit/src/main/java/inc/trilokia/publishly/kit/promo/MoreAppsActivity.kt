@@ -72,12 +72,12 @@ class MoreAppsActivity : Activity() {
                 text = app.tagline
                 visibility = if (app.tagline.isBlank()) View.GONE else View.VISIBLE
             }
-            icon.setImageDrawable(null)
-            icon.tag = app.iconUrl
+            icon.setImageBitmap(PromoIcons.cached(app))
+            icon.tag = app.packageName
             scope.launch {
-                val bitmap = PromoIcons.load(this@MoreAppsActivity, app.iconUrl)
+                val bitmap = PromoIcons.load(this@MoreAppsActivity, app)
                 // The row may have been recycled for another app while the icon loaded
-                if (icon.tag == app.iconUrl) icon.setImageBitmap(bitmap)
+                if (icon.tag == app.packageName) icon.setImageBitmap(bitmap)
             }
             return row
         }

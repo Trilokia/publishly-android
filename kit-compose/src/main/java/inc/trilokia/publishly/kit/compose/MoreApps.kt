@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -195,15 +196,42 @@ fun rememberMoreAppsTitle(promos: AppPromos): String {
     return developer?.let { stringResource(R.string.kit_more_apps_from, it) } ?: stringResource(R.string.kit_more_apps)
 }
 
-/** A promo app's icon, rounded; a soft square while it loads or when there is none. */
+/**
+ * [app]'s icon, from the first of its sources that can be had: an asset in the app
+ * (`"icon": "asset:promo/x.webp"`) or the web (`"icon"` or `"iconUrl"`), see [PromoIcons]. Null
+ * while it loads or when there is none. Use it in your own cells instead of loading icons yourself;
+ * an icon already in memory is there on the first frame.
+ */
+@Composable
+fun rememberPromoIcon(app: PromoApp): ImageBitmap? {
+    val context = LocalContext.current
+    // Keyed by the sources, so a cell reused for another app starts again rather than keep the old icon
+    val icon = remember(app.iconUrl, app.iconFallbackUrl) { mutableStateOf(PromoIcons.cached(app)?.asImageBitmap()) }
+    LaunchedEffect(icon) {
+        if (icon.value == null) icon.value = PromoIcons.load(context, app)?.asImageBitmap()
+    }
+    return icon.value
+}
+
+/** [app]'s icon ([rememberPromoIcon]), rounded; a soft square while it loads or when there is none. */
+@Composable
+fun PromoIcon(app: PromoApp, modifier: Modifier = Modifier, size: Dp = 56.dp, corner: Float = 0.25f) {
+    PromoIconImage(rememberPromoIcon(app), modifier, size, corner)
+}
+
+/** A promo icon from one [url] (a web URL or an `asset:` path), rounded; a soft square while it loads or when there is none. */
 @Composable
 fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, corner: Float = 0.25f) {
     val context = LocalContext.current
     val bitmap by produceState<Bitmap?>(initialValue = null, url) { value = PromoIcons.load(context, url) }
+    PromoIconImage(remember(bitmap) { bitmap?.asImageBitmap() }, modifier, size, corner)
+}
+
+@Composable
+private fun PromoIconImage(bitmap: ImageBitmap?, modifier: Modifier, size: Dp, corner: Float) {
     val shape = RoundedCornerShape(size * corner)
-    val ready = bitmap
-    if (ready != null) {
-        Image(ready.asImageBitmap(), contentDescription = null, modifier = modifier.size(size).clip(shape))
+    if (bitmap != null) {
+        Image(bitmap, contentDescription = null, modifier = modifier.size(size).clip(shape))
     } else {
         Box(modifier.size(size).clip(shape).background(MaterialTheme.colorScheme.surfaceVariant))
     }
@@ -262,7 +290,7 @@ fun PromoAppCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
-            PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
+            PromoIcon(app, size = style.rowIconSize, corner = style.iconCorner)
             app.badge?.let { PromoBadge(it, style, Modifier.align(Alignment.TopEnd)) }
         }
         Spacer(Modifier.height(6.dp))
@@ -355,7 +383,7 @@ fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.st
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        PromoIcon(app.iconUrl, size = 40.dp, corner = style.iconCorner)
+        PromoIcon(app, size = 40.dp, corner = style.iconCorner)
         Column(Modifier.weight(1f)) {
             Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 2.dp))
@@ -369,7 +397,7 @@ fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.st
 fun PromoAppCard(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     ElevatedCard(onClick = onOpen, shape = style.cardShape) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
+            PromoIcon(app, size = style.rowIconSize, corner = style.iconCorner)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
@@ -395,7 +423,7 @@ fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.styl
     Card(onClick = onOpen, colors = style.cardColors, shape = style.cardShape) {
         Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box {
-                PromoIcon(app.iconUrl, size = 64.dp, corner = style.iconCorner)
+                PromoIcon(app, size = 64.dp, corner = style.iconCorner)
                 app.badge?.let { PromoBadge(it, style, Modifier.align(Alignment.TopEnd)) }
             }
             Spacer(Modifier.height(10.dp))
@@ -417,7 +445,7 @@ fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.styl
 fun PromoAppRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     ListItem(
         modifier = Modifier.clickable(onClick = onOpen),
-        leadingContent = { PromoIcon(app.iconUrl, size = style.listIconSize, corner = style.iconCorner) },
+        leadingContent = { PromoIcon(app, size = style.listIconSize, corner = style.iconCorner) },
         headlineContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -496,7 +524,7 @@ fun FeaturedPromoDialog(
     }
     AlertDialog(
         onDismissRequest = s::notNow,
-        icon = { PromoIcon(f.app.iconUrl, size = 64.dp) },
+        icon = { PromoIcon(f.app, size = 64.dp) },
         title = { Text(f.title, textAlign = TextAlign.Center) },
         text = { Text(f.message) },
         confirmButton = {
