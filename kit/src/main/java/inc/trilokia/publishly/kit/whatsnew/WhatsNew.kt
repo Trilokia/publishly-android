@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
+import inc.trilokia.publishly.kit.KitNetwork
 import inc.trilokia.publishly.kit.KitTheme
 import inc.trilokia.publishly.kit.R
 import inc.trilokia.publishly.kit.update.JsonUpdates
@@ -26,7 +27,8 @@ import java.util.concurrent.TimeUnit
  *   the first run on a phone, only after a versionCode change.
  *
  * The source is fetched at most once per [refreshMs] and kept in SharedPreferences, so the screen
- * works offline after the first load and a broken fetch keeps showing the last good copy.
+ * works offline after the first load and a broken fetch keeps showing the last good copy. An app
+ * without the `INTERNET` permission never fetches: a [WhatsNewSource.Bundled] is all it can show.
  */
 class WhatsNew(
     context: Context,
@@ -42,7 +44,9 @@ class WhatsNew(
     suspend fun notes(): List<ReleaseNote> {
         val cached = prefs.getString(bodyKey, null)
         val now = System.currentTimeMillis()
-        if (cached == null || now - prefs.getLong(fetchedKey, 0L) >= refreshMs) {
+        // A bundled source needs no network; the others are left alone without the INTERNET permission
+        val reachable = source is WhatsNewSource.Bundled || KitNetwork.permitted(app)
+        if (reachable && (cached == null || now - prefs.getLong(fetchedKey, 0L) >= refreshMs)) {
             val fresh = runCatching { fetch(source) }
                 .onFailure { Log.w(TAG, "What's new not fetched: $it") }
                 .getOrNull()

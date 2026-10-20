@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
+import inc.trilokia.publishly.kit.KitNetwork
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -86,6 +87,8 @@ object PromoIcons {
     private fun web(context: Context, url: String): Bitmap? {
         val dir = File(context.cacheDir, "kit_icons").apply { mkdirs() }
         val file = File(dir, md5(url))
+        // A web icon that isn't on disk yet needs the INTERNET permission; without it, the soft square stays
+        if (!file.exists() && !KitNetwork.permitted(context)) return null
         val bitmap = runCatching {
             if (!file.exists()) download(url, file)
             BitmapFactory.decodeFile(file.path)

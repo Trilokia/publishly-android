@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import inc.trilokia.publishly.kit.KitNetwork
 import inc.trilokia.publishly.kit.KitTheme
 import inc.trilokia.publishly.kit.R
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,11 @@ class JsonUpdates(context: Context, private val url: String?, private val bundle
     suspend fun checkState(): UpdateState {
         var failure: String? = null
         val fetched = url?.let { u ->
+            // Without the INTERNET permission the server is never asked: yesterday's answer or the bundled copy it is
+            if (!KitNetwork.permitted(app)) {
+                failure = "No INTERNET permission"
+                return@let null
+            }
             runCatching { fetch(u) }
                 .onFailure { failure = it.toString(); Log.w(TAG, "Update check failed: $it") }
                 .getOrNull()

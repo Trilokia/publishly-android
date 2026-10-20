@@ -99,6 +99,17 @@ Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal
 
 The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
 
+### An app without the INTERNET permission
+
+An offline app (a converter, a calculator) may want no network permission at all. Take it out of the merged manifest, and the kit notices once per process and never fetches: no update file, no promo feed, no icons, no what's-new source, and no warnings in the log. Everything then comes from what the app carries, as it does offline: `bundledJson` on `Updates` and `AppPromos`, `asset:` icons, a `WhatsNewSource.Bundled`. Play's in-app update and review sheet still work; they talk to the Play Store app, not the network.
+
+```xml
+<!-- app/src/main/AndroidManifest.xml -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+```
+
 ## 2. Quick start: a Compose app
 
 Everything wired into one activity. Each piece is optional; delete what you don't need.

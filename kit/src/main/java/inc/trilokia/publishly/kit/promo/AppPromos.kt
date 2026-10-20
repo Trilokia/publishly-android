@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
+import inc.trilokia.publishly.kit.KitNetwork
 import inc.trilokia.publishly.kit.KitTheme
 import inc.trilokia.publishly.kit.R
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ data class PromoAppEntry(val app: PromoApp, val installed: Boolean)
  *
  * The feed is fetched at most once per [refreshMs] and kept in SharedPreferences, so it works
  * offline after the first load. [bundledJson] (a copy in `assets/`) is used until the server
- * answers the first time, or always when [url] is null.
+ * answers the first time, or always when [url] is null or the app has no `INTERNET` permission.
  *
  * The lists are titled "More apps from us", or "More apps from Trilokia Inc." when a developer is
  * named: [developerName] here, or `"developer"` in the feed (see [title]).
@@ -56,7 +57,8 @@ class AppPromos(
         val cached = prefs.getString(KEY_JSON, null)
         val now = System.currentTimeMillis()
         val feedUrl = url
-        if (feedUrl != null && (cached == null || now - prefs.getLong(KEY_FETCHED_AT, 0L) >= refreshMs)) {
+        // Without the INTERNET permission the feed is whatever was cached or bundled, with no fetch and no warning
+        if (feedUrl != null && KitNetwork.permitted(app) && (cached == null || now - prefs.getLong(KEY_FETCHED_AT, 0L) >= refreshMs)) {
             val fresh = runCatching { fetch(feedUrl) }
                 .onFailure { Log.w(TAG, "Promo feed not fetched: $it") }
                 .getOrNull()
