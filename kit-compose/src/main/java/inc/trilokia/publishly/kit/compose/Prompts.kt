@@ -162,10 +162,12 @@ fun ReviewPromptSheet(reviewAsk: ReviewAsk) {
         ) {
             Text(stringResource(R.string.kit_review_title, reviewAsk.appName), style = MaterialTheme.typography.titleLarge)
             ReviewPromptBody(reviewAsk, stars) { stars = it }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.NEVER) }) { Text(stringResource(R.string.kit_review_never)) }
-                TextButton(onClick = { reviewAsk.answer(activity, Answer.LATER) }) { Text(stringResource(R.string.kit_review_later)) }
-                ReviewConfirmButton(reviewAsk, stars, filled = true) { reviewAsk.answerRating(activity, stars) }
+            // The answer that matters gets the full width, so "Rate on Play" stays on one line at any
+            // font size; the two ways out share the line under it
+            ReviewConfirmButton(reviewAsk, stars, filled = true, modifier = Modifier.fillMaxWidth()) { reviewAsk.answerRating(activity, stars) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                TextButton(onClick = { reviewAsk.answer(activity, Answer.NEVER) }) { Text(stringResource(R.string.kit_review_never), maxLines = 1) }
+                TextButton(onClick = { reviewAsk.answer(activity, Answer.LATER) }) { Text(stringResource(R.string.kit_review_later), maxLines = 1) }
             }
         }
     }

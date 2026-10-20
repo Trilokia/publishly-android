@@ -6,6 +6,8 @@
 - `AppPromos.allApps()` returns every feed app with its installed flag, `AppPromos.launch()` opens an installed one; `arrange()` is the ordering rule, with tests.
 - The `row` / `item` overrides of the lists now receive the installed flag.
 - `MoreAppsDefaults.style()`: `showInstalledLabel`, `installedContainer`, `installedContent`.
+- The lists can carry your name: "More apps from Trilokia Inc." from `AppPromos(developerName = …)` or a top-level `"developer"` in the feed, "More apps from us" without one. `rememberMoreAppsTitle(promos)` and `promos.title()` give the same title for your own screens; the View screen uses it too.
+- The review prompt's bottom sheet puts its main button ("Rate on Play" / "Send feedback") on its own full-width line, so it no longer wraps at larger font sizes.
 - Hindi translations of every user-facing string (`values-hi`).
 
 ## 1.0.0

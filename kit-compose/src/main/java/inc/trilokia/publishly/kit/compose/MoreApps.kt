@@ -182,6 +182,17 @@ fun rememberPromoEntries(promos: AppPromos, showInstalled: Boolean = true): List
     return entries
 }
 
+/**
+ * The title for your apps: "More apps from Trilokia Inc." when a developer is named
+ * ([AppPromos.developerName], or `"developer"` in the feed), "More apps from us" otherwise.
+ * [MoreAppsRow] uses it; use it for your own top bar over [MoreAppsList] too.
+ */
+@Composable
+fun rememberMoreAppsTitle(promos: AppPromos): String {
+    val developer by produceState(initialValue = promos.developerName?.trim()?.ifEmpty { null }, promos) { value = promos.developer() }
+    return developer?.let { stringResource(R.string.kit_more_apps_from, it) } ?: stringResource(R.string.kit_more_apps)
+}
+
 /** A promo app's icon, rounded; a soft square while it loads or when there is none. */
 @Composable
 fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, corner: Float = 0.25f) {
@@ -208,7 +219,7 @@ fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, cor
 fun MoreAppsRow(
     promos: AppPromos,
     modifier: Modifier = Modifier,
-    title: String = stringResource(R.string.kit_more_apps),
+    title: String = rememberMoreAppsTitle(promos),
     style: MoreAppsStyle = MoreAppsDefaults.style(),
     layout: MoreAppsRowLayout = MoreAppsRowLayout.Scroll,
     showInstalled: Boolean = true,
@@ -223,7 +234,7 @@ fun MoreAppsRow(
     }
     Card(modifier.fillMaxWidth(), colors = style.cardColors, shape = style.cardShape) {
         Column(Modifier.padding(vertical = 12.dp)) {
-            Text(title, style = style.title, color = style.titleColor, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(title, style = style.title, color = style.titleColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
             when (layout) {
                 MoreAppsRowLayout.Scroll -> LazyRow(contentPadding = PaddingValues(horizontal = 8.dp)) {

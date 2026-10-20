@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -98,15 +99,15 @@ internal fun ReviewPromptBody(reviewAsk: ReviewAsk, stars: Int, onStars: (Int) -
 
 /** "Rate it" before a star is picked, then "Rate on Google Play" or "Send feedback". */
 @Composable
-internal fun ReviewConfirmButton(reviewAsk: ReviewAsk, stars: Int, filled: Boolean, onClick: () -> Unit) {
+internal fun ReviewConfirmButton(reviewAsk: ReviewAsk, stars: Int, filled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val label = when {
         stars == 0 -> stringResource(R.string.kit_review_rate)
         reviewAsk.answerFor(stars) == Answer.RATE -> stringResource(R.string.kit_review_rate_play)
         reviewAsk.answerFor(stars) == Answer.FEEDBACK -> stringResource(R.string.kit_review_send_feedback)
         else -> stringResource(R.string.kit_review_later)
     }
-    if (filled) Button(onClick = onClick, enabled = stars > 0) { Text(label) }
-    else TextButton(onClick = onClick, enabled = stars > 0) { Text(label) }
+    if (filled) Button(onClick = onClick, enabled = stars > 0, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    else TextButton(onClick = onClick, enabled = stars > 0, modifier = modifier) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
 }
 
 /**

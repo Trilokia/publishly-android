@@ -35,6 +35,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -60,6 +61,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import inc.trilokia.publishly.kit.compose.FeaturedPromoDialog
 import inc.trilokia.publishly.kit.compose.MoreAppsLayout
 import inc.trilokia.publishly.kit.compose.MoreAppsList
@@ -291,13 +294,21 @@ private fun ActionRow(icon: ImageVector, title: String, detail: String, onClick:
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Choices(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    val crowded = labels.size > 3
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         labels.forEachIndexed { i, label ->
             SegmentedButton(
                 selected = selected == i,
                 onClick = { onSelect(i) },
                 shape = SegmentedButtonDefaults.itemShape(index = i, count = labels.size),
-            ) { Text(label) }
+                // With four choices the check mark leaves too little room ("By licence" broke in two at
+                // a 1.15 font size); the fill colour still shows the choice
+                icon = if (crowded) ({}) else ({ SegmentedButtonDefaults.Icon(selected == i) }),
+                contentPadding = if (crowded) PaddingValues(horizontal = 6.dp) else SegmentedButtonDefaults.ContentPadding,
+            ) {
+                // One line always: the text shrinks a little rather than wrap
+                Text(label, maxLines = 1, autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = LocalTextStyle.current.fontSize))
+            }
         }
     }
 }

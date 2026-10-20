@@ -41,6 +41,7 @@ internal object KitScreen {
             setOnClickListener { activity.finish() }
         }
         val titleView = TextView(activity).apply {
+            tag = TITLE_TAG
             text = title
             setTextAppearance(android.R.style.TextAppearance_Material_Title)
             setTextColor(c.onTopBar)
@@ -89,4 +90,11 @@ internal object KitScreen {
             insets
         }
     }
+
+    /** Changes the top-bar title of a screen built with [setContent]. */
+    fun setTitle(activity: Activity, title: CharSequence) {
+        activity.window.decorView.findViewWithTag<TextView>(TITLE_TAG)?.text = title
+    }
+
+    private const val TITLE_TAG = "publishly_kit_title"
 }

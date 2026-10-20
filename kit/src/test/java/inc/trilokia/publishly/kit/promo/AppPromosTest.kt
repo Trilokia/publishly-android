@@ -27,6 +27,18 @@ class AppPromosTest {
     }
 
     @Test
+    fun `the developer name comes from code first, then the feed, and blank counts as none`() {
+        assertEquals("Trilokia Inc.", feed.developer)
+        assertEquals("Trilokia Inc.", AppPromos.developerOf(null, feed))
+        assertEquals("Trilokia", AppPromos.developerOf("  Trilokia ", feed))
+        assertEquals("Trilokia Inc.", AppPromos.developerOf("   ", feed))
+        val unnamed = PromoFeed.parse("""{"developer":"  ","apps":[{"package":"a.b","name":"AB"}]}""")
+        assertNull(unnamed.developer)
+        assertNull(AppPromos.developerOf(null, unnamed))
+        assertNull(AppPromos.developerOf(null, null))
+    }
+
+    @Test
     fun `only package and name are required`() {
         val f = PromoFeed.parse("""{"apps":[{"package":"a.b","name":"AB"}]}""")
         assertEquals(PromoApp("a.b", "AB"), f.apps.single())

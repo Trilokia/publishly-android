@@ -23,6 +23,7 @@
     <string name="kit_feedback_rating">मेरी रेटिंग: %1$d / 5</string>
     <string name="kit_feedback_body">क्या बेहतर हो सकता है?</string>
     <string name="kit_more_apps">हमारे और ऐप</string>
+    <string name="kit_more_apps_from">%1$s के और ऐप</string>
     <string name="kit_get">पाएँ</string>
     <string name="kit_open">खोलें</string>
     <string name="kit_installed_thanks">इंस्टॉल है · धन्यवाद!</string>

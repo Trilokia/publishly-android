@@ -31,6 +31,7 @@ class MoreAppsActivity : Activity() {
             this,
             url = intent.getStringExtra(EXTRA_URL),
             bundledJson = intent.getStringExtra(EXTRA_BUNDLED_JSON),
+            developerName = intent.getStringExtra(EXTRA_DEVELOPER),
         )
         val adapter = Adapter()
         val list = ListView(this).apply {
@@ -38,8 +39,10 @@ class MoreAppsActivity : Activity() {
             divider = null
             setOnItemClickListener { _, _, position, _ -> promos.open(this@MoreAppsActivity, adapter.items[position]) }
         }
-        KitScreen.setContent(this, getString(R.string.kit_more_apps), list)
+        KitScreen.setContent(this, promos.titleFor(promos.developerName), list)
         scope.launch {
+            // The feed may name the developer when the code didn't
+            KitScreen.setTitle(this@MoreAppsActivity, promos.title())
             adapter.items = promos.apps()
             adapter.notifyDataSetChanged()
         }
@@ -108,6 +111,7 @@ class MoreAppsActivity : Activity() {
     companion object {
         const val EXTRA_URL = "url"
         const val EXTRA_BUNDLED_JSON = "bundled_json"
+        const val EXTRA_DEVELOPER = "developer"
         private val ID_ICON = View.generateViewId()
         private val ID_NAME = View.generateViewId()
         private val ID_TAGLINE = View.generateViewId()

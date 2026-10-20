@@ -1,4 +1,5 @@
 {
+  "developer": "Trilokia Inc.",
   "apps": [
     {
       "package": "inc.trilokia.cardjuggler",

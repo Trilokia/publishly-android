@@ -10,6 +10,8 @@ import inc.trilokia.publishly.kit.KitTheme
 import inc.trilokia.publishly.kit.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.Mutex
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -31,6 +33,9 @@ data class PromoAppEntry(val app: PromoApp, val installed: Boolean)
  * The feed is fetched at most once per [refreshMs] and kept in SharedPreferences, so it works
  * offline after the first load. [bundledJson] (a copy in `assets/`) is used until the server
  * answers the first time, or always when [url] is null.
+ *
+ * The lists are titled "More apps from us", or "More apps from Trilokia Inc." when a developer is
+ * named: [developerName] here, or `"developer"` in the feed (see [title]).
  */
 class AppPromos(
     context: Context,
@@ -38,12 +43,16 @@ class AppPromos(
     private val bundledJson: String? = null,
     private val refreshMs: Long = TimeUnit.HOURS.toMillis(24),
     private val featuredRestMs: Long = TimeUnit.DAYS.toMillis(7),
+    /** Your name for the title ("Trilokia Inc."); null takes the feed's `developer`, and without one the title is "More apps from us". */
+    val developerName: String? = null,
 ) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences("kit_promos", Context.MODE_PRIVATE)
+    // The list and its title read the feed at the same moment; one fetch serves both
+    private val feedLock = Mutex()
 
     /** The whole feed, from the server, the cache or the bundled copy; null when there is none. */
-    suspend fun feed(): PromoFeed? {
+    suspend fun feed(): PromoFeed? = feedLock.withLock {
         val cached = prefs.getString(KEY_JSON, null)
         val now = System.currentTimeMillis()
         val feedUrl = url
@@ -60,6 +69,16 @@ class AppPromos(
         return cached?.let { runCatching { PromoFeed.parse(it) }.getOrNull() }
             ?: bundledJson?.let { runCatching { PromoFeed.parse(it) }.getOrNull() }
     }
+
+    /** The developer the title names: [developerName], else the feed's `developer`, else null. */
+    suspend fun developer(): String? = developerOf(developerName, feed())
+
+    /** "More apps from Trilokia Inc.", or "More apps from us" when no developer is named. */
+    suspend fun title(): String = titleFor(developer())
+
+    /** [title] for a known [developer], without reading the feed. */
+    fun titleFor(developer: String?): String =
+        developer?.let { app.getString(R.string.kit_more_apps_from, it) } ?: app.getString(R.string.kit_more_apps)
 
     /** Your apps this phone doesn't have yet, best first. */
     suspend fun apps(): List<PromoApp> = feed()?.let { pick(it, app.packageName, ::isInstalled) } ?: emptyList()
@@ -130,7 +149,8 @@ class AppPromos(
         context.startActivity(
             Intent(context, MoreAppsActivity::class.java)
                 .putExtra(MoreAppsActivity.EXTRA_URL, url)
-                .putExtra(MoreAppsActivity.EXTRA_BUNDLED_JSON, bundledJson),
+                .putExtra(MoreAppsActivity.EXTRA_BUNDLED_JSON, bundledJson)
+                .putExtra(MoreAppsActivity.EXTRA_DEVELOPER, developerName),
         )
     }
 
@@ -166,6 +186,10 @@ class AppPromos(
             feed.apps.filter { it.packageName != self }
                 .map { PromoAppEntry(it, isInstalled(it.packageName)) }
                 .sortedWith(compareBy<PromoAppEntry> { it.installed }.thenByDescending { it.app.priority })
+
+        /** Which name the title uses: the one given in code, else the feed's; blank counts as none. */
+        fun developerOf(explicit: String?, feed: PromoFeed?): String? =
+            explicit?.trim()?.ifEmpty { null } ?: feed?.developer?.trim()?.ifEmpty { null }
 
         /** The featured rule on its own. [lastShownAt] is 0 while never shown. */
         fun featuredDue(lastShownAt: Long, now: Long, restMs: Long, dismissed: Boolean): Boolean =

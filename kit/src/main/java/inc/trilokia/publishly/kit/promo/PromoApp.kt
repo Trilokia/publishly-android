@@ -38,6 +38,7 @@ data class FeaturedPromo(val app: PromoApp, val title: String, val message: Stri
  *
  * ```json
  * {
+ *   "developer": "Trilokia Inc.",
  *   "apps": [
  *     { "package": "inc.trilokia.cardjuggler", "name": "Card Juggler", "tagline": "...",
  *       "icon": "https://.../icon.png", "badge": "New", "priority": 100 }
@@ -49,7 +50,12 @@ data class FeaturedPromo(val app: PromoApp, val title: String, val message: Stri
  * Only `package` and `name` are required; `featured` is optional. The repo's `promo/apps.json`
  * is a complete example.
  */
-data class PromoFeed(val apps: List<PromoApp>, val featured: Featured?) {
+data class PromoFeed(
+    val apps: List<PromoApp>,
+    val featured: Featured?,
+    /** Your name, for the "More apps from …" title ("Trilokia Inc."); null when the feed doesn't say. */
+    val developer: String? = null,
+) {
     data class Featured(val packageName: String, val title: String?, val message: String?)
 
     companion object {
@@ -72,7 +78,7 @@ data class PromoFeed(val apps: List<PromoApp>, val featured: Featured?) {
             val featured = o.optJSONObject("featured")?.let {
                 Featured(it.getString("package"), it.optString("title").ifEmpty { null }, it.optString("message").ifEmpty { null })
             }
-            return PromoFeed(apps, featured)
+            return PromoFeed(apps, featured, developer = o.optString("developer").trim().ifEmpty { null })
         }
     }
 }

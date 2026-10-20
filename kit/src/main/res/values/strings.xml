@@ -26,6 +26,7 @@
     <string name="kit_feedback_body">What could be better?</string>
     <!-- Promoting your own apps (AppPromos) -->
     <string name="kit_more_apps">More apps from us</string>
+    <string name="kit_more_apps_from">More apps from %1$s</string>
     <string name="kit_get">Get</string>
     <string name="kit_open">Open</string>
     <string name="kit_installed_thanks">Installed · Thanks!</string>

@@ -353,6 +353,7 @@ flowchart TD
 
 ```json
 {
+  "developer": "Trilokia Inc.",
   "apps": [
     { "package": "inc.trilokia.cardjuggler", "name": "Card Juggler: Bank Card Offers",
       "tagline": "Share a shopping link, see which of your cards saves most",
@@ -362,13 +363,14 @@ flowchart TD
 }
 ```
 
-Only `package` and `name` are required. `url` sends "Get" somewhere other than the Play page. The Play link carries the promoting app's package as the install referrer, so Play Console shows which app brought each install.
+Only `package` and `name` are required. `url` sends "Get" somewhere other than the Play page. An optional top-level `"developer": "Trilokia Inc."` titles the lists "More apps from Trilokia Inc."; without it they read "More apps from us". The Play link carries the promoting app's package as the install referrer, so Play Console shows which app brought each install.
 
 ```kotlin
 val promos = AppPromos(
     context,
     url = "https://www.example.com/apps.json",
     bundledJson = assets.open("apps.json").bufferedReader().readText(),   // optional: used until the server answers
+    developerName = "Trilokia Inc.",   // optional: "More apps from Trilokia Inc."; null takes the feed's "developer", else "More apps from us"
 )
 ```
 
@@ -378,6 +380,8 @@ Compose apps:
 MoreAppsRow(promos)          // a card with a scrolling row of icons; draws nothing when there's nothing to show
 MoreAppsList(promos)         // the full list with taglines and "Get" buttons, on its own screen
 MoreAppsList(promos, showInstalled = false)   // only the apps the phone doesn't have (the 1.0 behaviour)
+TopAppBar(title = { Text(rememberMoreAppsTitle(promos)) })   // the same title for your own screen over MoreAppsList
+MoreAppsRow(promos, title = "Our other apps")                // or any title of your own
 FeaturedPromoDialog(promos)  // the featured app, in a dialog, when it's due (not installed, once a week, until dismissed)
 ```
 
