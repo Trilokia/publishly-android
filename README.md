@@ -85,17 +85,17 @@ dependencyResolutionManagement {
 }
 ```
 
-In the app module (the latest release is `v1.1.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed):
+In the app module (the latest release is `v2.0.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed, and what 2.0 asks of a 1.x app: one Gradle line for the licence list):
 
 ```kotlin
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit:v1.1.0")
-    implementation("com.github.Trilokia.publishly-android:kit-compose:v1.1.0")   // Compose apps only
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v1.1.0")       // the open source licence list, see section 8
+    implementation("com.github.Trilokia.publishly-android:kit:v2.0.0")
+    implementation("com.github.Trilokia.publishly-android:kit-compose:v2.0.0")   // Compose apps only
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.0.0")       // the open source licence list, see section 8
 }
 ```
 
-Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:1.1.0` / `inc.trilokia:kit-compose:1.1.0` / `inc.trilokia:kit-oss:1.1.0`.
+Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:2.0.0` / `inc.trilokia:kit-compose:2.0.0` / `inc.trilokia:kit-oss:2.0.0`.
 
 The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
 
@@ -550,7 +550,7 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v1.1.0")   // with kit (and kit-compose for OpenSourceScreen)
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.0.0")   // with kit (and kit-compose for OpenSourceScreen)
 }
 ```
 
@@ -811,7 +811,7 @@ The recordings at the top of this page are this app. The update dialog, the feat
 ./gradlew publishToMavenLocal         # the three library modules into ~/.m2
 ```
 
-Tag the repo (`v1.1.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
+Tag the repo (`v2.0.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
 
 ## License
 
