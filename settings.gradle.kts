@@ -24,5 +24,5 @@ rootProject.name = "PublishlyKit"
 include(":kit")
 // Compose wrappers for apps written in Jetpack Compose
 include(":kit-compose")
-// A small app that uses all of them, with Google's test ad units
+// "Sample App": every feature behind a button, with sample update and release-notes text
 include(":sample")
