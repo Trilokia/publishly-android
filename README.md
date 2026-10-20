@@ -49,8 +49,9 @@ Recorded from the sample app in [`sample/`](sample) (section 11) on an API 33 em
 
 | Module | What's in it |
 | --- | --- |
-| `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `OpenSource`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, `OpenSourceScreen()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
+| `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
+| `kit-oss` | The open source licence list: `OpenSource`, `OpenSourceActivity` (View) and `OpenSourceScreen()` (Compose), on [AboutLibraries](https://github.com/mikepenz/AboutLibraries). Separate, so an app with its own licence screen doesn't carry it. Depends on `kit`. |
 | `sample` | "Sample App": a Material You app with every feature behind a button, sample update and release-notes text, the real Trilokia promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
@@ -90,10 +91,11 @@ In the app module (the latest release is `v1.1.0`; [CHANGELOG.md](CHANGELOG.md) 
 dependencies {
     implementation("com.github.Trilokia.publishly-android:kit:v1.1.0")
     implementation("com.github.Trilokia.publishly-android:kit-compose:v1.1.0")   // Compose apps only
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v1.1.0")       // the open source licence list, see section 8
 }
 ```
 
-Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:1.0.0` / `inc.trilokia:kit-compose:1.0.0`.
+Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:1.1.0` / `inc.trilokia:kit-compose:1.1.0` / `inc.trilokia:kit-oss:1.1.0`.
 
 The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
 
@@ -511,7 +513,7 @@ lifecycleScope.launch { whatsNew.showDialog(activity, whatsNew.pending()) }
 
 ## 8. Open source licences
 
-A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back.
+A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back. It lives in its own module, `kit-oss`, so an app with a licence screen of its own doesn't carry AboutLibraries; the classes keep their package names.
 
 ```mermaid
 flowchart LR
@@ -535,6 +537,9 @@ plugins {
 // 2. App build.gradle.kts
 plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
+}
+dependencies {
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v1.1.0")   // with kit (and kit-compose for OpenSourceScreen)
 }
 ```
 
@@ -738,7 +743,7 @@ The recordings at the top of this page are this app. The update dialog, the feat
 ```sh
 ./gradlew :kit:testDebugUnitTest   # unit tests: real update JSON, the promo template, real Play pages and GitHub answers, the review and what's-new rules
 ./gradlew :sample:installDebug        # the sample app
-./gradlew publishToMavenLocal         # both library modules into ~/.m2
+./gradlew publishToMavenLocal         # the three library modules into ~/.m2
 ```
 
 Tag the repo (`v1.1.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.

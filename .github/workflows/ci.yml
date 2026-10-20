@@ -22,7 +22,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # The unit tests run against real data checked into the repo (update JSON, the promo
-      # template, saved Play pages); the sample build proves both library modules and the
+      # template, saved Play pages); the sample build proves the three library modules and the
       # AboutLibraries plugin still work together
       - name: Test the library
         run: ./gradlew :kit:testDebugUnitTest --no-daemon --stacktrace
@@ -30,7 +30,7 @@ jobs:
       - name: Build the sample app
         run: ./gradlew :sample:assembleDebug --no-daemon --stacktrace
 
-      - name: Publish both modules to the local Maven repo
+      - name: Publish the modules to the local Maven repo
         run: ./gradlew publishToMavenLocal --no-daemon
 
       - name: Keep the test reports

@@ -16,10 +16,6 @@
     <application>
         <!-- The plain-View screens, for apps without Compose. They take the app's theme -->
         <activity
-            android:name=".oss.OpenSourceActivity"
-            android:exported="false"
-            android:label="@string/kit_open_source" />
-        <activity
             android:name=".promo.MoreAppsActivity"
             android:exported="false"
             android:label="@string/kit_more_apps" />

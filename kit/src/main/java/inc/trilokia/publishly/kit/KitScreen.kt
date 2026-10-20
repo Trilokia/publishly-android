@@ -16,8 +16,12 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
-/** What the plain-View screens share: the theme, a top bar with a back arrow, and edge-to-edge insets. */
-internal object KitScreen {
+/**
+ * What the plain-View screens share: the theme, a top bar with a back arrow, and edge-to-edge
+ * insets. Public so the `kit-oss` module's screen (and a plain-View screen of your own, in the same
+ * look) can use it: [applyTheme] before `super.onCreate`, [setContent] after.
+ */
+object KitScreen {
     /** Call before `super.onCreate`. */
     fun applyTheme(activity: Activity) {
         activity.setTheme(KitTheme.style ?: R.style.Theme_PublishlyKit)

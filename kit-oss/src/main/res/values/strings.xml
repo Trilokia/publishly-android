@@ -1,0 +1,6 @@
+<resources>
+    <!-- The open-source licence screen (OpenSourceScreen, OpenSourceActivity). An app can override any of these in its own strings.xml -->
+    <string name="kit_open_source">Open source licences</string>
+    <string name="kit_open_source_empty">No licence list in this build.</string>
+    <string name="kit_licence_unknown">Other licences</string>
+</resources>

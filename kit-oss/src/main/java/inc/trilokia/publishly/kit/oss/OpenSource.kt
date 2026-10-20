@@ -9,7 +9,8 @@ import com.mikepenz.aboutlibraries.util.withContext
  * The "Open source licences" list. Nothing is written by hand: the app applies the
  * `com.mikepenz.aboutlibraries.plugin.android` Gradle plugin, which reads every dependency of the
  * app at build time and writes `res/raw/aboutlibraries.json` (names, versions, authors, licence
- * texts). This reads that file back.
+ * texts). This reads that file back. It lives in the `kit-oss` module, so an app with a licence
+ * screen of its own doesn't carry AboutLibraries.
  *
  * Release builds shrink resources and may drop the file; keep it with a `res/raw/keep.xml`
  * holding `tools:keep="@raw/aboutlibraries"` (the sample app has one).

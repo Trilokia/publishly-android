@@ -1,0 +1,6 @@
+<resources>
+    <!-- Hindi. The English file is the reference -->
+    <string name="kit_open_source">ओपन सोर्स लाइसेंस</string>
+    <string name="kit_open_source_empty">इस बिल्ड में लाइसेंस सूची नहीं है।</string>
+    <string name="kit_licence_unknown">अन्य लाइसेंस</string>
+</resources>

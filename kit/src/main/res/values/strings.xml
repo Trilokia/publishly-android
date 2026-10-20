@@ -6,10 +6,6 @@
     <string name="kit_update_later">Later</string>
     <string name="kit_update_ready">An update has been downloaded.</string>
     <string name="kit_restart">Restart</string>
-    <!-- The open-source licence screen -->
-    <string name="kit_open_source">Open source licences</string>
-    <string name="kit_open_source_empty">No licence list in this build.</string>
-    <string name="kit_licence_unknown">Other licences</string>
     <!-- Our own "Enjoying the app?" prompt, before Play's review sheet (ReviewAsk) -->
     <string name="kit_review_title">Enjoying %1$s?</string>
     <string name="kit_review_message">A rating on Google Play helps a lot, and takes a few seconds.</string>

@@ -31,8 +31,6 @@ dependencies {
     // `api`, not `implementation`: apps use these SDKs' own types (AdView, AdSize, RewardItem...)
     api(libs.play.review)
     api(libs.play.app.update)
-    // The licence list reader; the app applies the matching Gradle plugin (see README)
-    api(libs.aboutlibraries.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.kotlinx.coroutines.android)

@@ -49,7 +49,8 @@ import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.mikepenz.aboutlibraries.ui.compose.m3.chipColors
 import com.mikepenz.aboutlibraries.ui.compose.m3.libraryColors
-import inc.trilokia.publishly.kit.R
+import inc.trilokia.publishly.kit.oss.R
+import inc.trilokia.publishly.kit.R as KitR
 import inc.trilokia.publishly.kit.oss.OpenSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -140,7 +141,7 @@ fun rememberLibraries(): Libs? {
 /**
  * The "Open source licences" list for Compose apps, fed from the `aboutlibraries.json` the Gradle
  * plugin wrote for this app (see [OpenSource]). Tap a row for the licence text. Put it on its own
- * screen with your app's top bar. [layout] picks the arrangement, [style] changes each element,
+ * screen with your app's top bar. In the `kit-oss` module. [layout] picks the arrangement, [style] changes each element,
  * [onLibraryClick] replaces the licence dialog with your own handling, and [row] replaces the whole
  * entry in every layout but [OpenSourceLayout.List].
  */
@@ -321,7 +322,7 @@ fun LicenceDialog(library: Library, style: OpenSourceStyle = OpenSourceDefaults.
         onDismissRequest = onDismiss,
         title = { Text(library.name) },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text(text, style = MaterialTheme.typography.bodySmall) } },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.kit_ok)) } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(KitR.string.kit_ok)) } },
         containerColor = style.background,
         textContentColor = style.content,
         titleContentColor = style.content,

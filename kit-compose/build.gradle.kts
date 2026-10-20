@@ -37,7 +37,6 @@ dependencies {
     // The check mark on the "Installed" label (the core set only, a few dozen icons)
     implementation(libs.compose.material.icons.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.aboutlibraries.compose.m3)
 }
 
 publishing {

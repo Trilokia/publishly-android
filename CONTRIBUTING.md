@@ -10,7 +10,7 @@ Thanks for helping. This is a small library with one rule above all others: an a
 
 ## What a good change looks like
 
-- **Plain Kotlin at the core.** `kit` has no Compose dependency, so View and Java apps can use it. Compose wrappers go in `kit-compose`.
+- **Plain Kotlin at the core.** `kit` has no Compose dependency, so View and Java apps can use it. Compose wrappers go in `kit-compose`; the licence list, with its AboutLibraries dependency, stays in `kit-oss`.
 - **Both worlds.** A new screen or prompt comes with a Compose version and a plain-View version, both taking the app's colours (`KitTheme`).
 - **Rules are pure functions.** Anything that decides *when* (ask for a review, show the featured app, which route the update takes) lives in a small function with no Android types, with a unit test next to it. See `ReviewAsk.isDue`, `Updates.route`, `AppPromos.featuredDue`.
 - **Fails quietly.** No network, no Play, a broken file: the app carries on and logs one line. Nothing in the kit may crash the host app.

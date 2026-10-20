@@ -14,12 +14,13 @@ import com.mikepenz.aboutlibraries.entity.Library
 import inc.trilokia.publishly.kit.KitColors
 import inc.trilokia.publishly.kit.KitScreen
 import inc.trilokia.publishly.kit.KitTheme
-import inc.trilokia.publishly.kit.R
+import inc.trilokia.publishly.kit.oss.R
 
 /**
  * The licence list for View-based apps: one row per library (name, version, author, licence),
  * tap for the licence text with a link to the library's site. Plain widgets only, so it needs no
- * AppCompat or Material, in the [KitTheme] colours. Start it with [OpenSource.open].
+ * AppCompat or Material, in the [KitTheme] colours. Start it with [OpenSource.open]. In the
+ * `kit-oss` module.
  */
 class OpenSourceActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

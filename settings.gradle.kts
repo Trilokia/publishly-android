@@ -24,5 +24,7 @@ rootProject.name = "PublishlyKit"
 include(":kit")
 // Compose wrappers for apps written in Jetpack Compose
 include(":kit-compose")
+// The open-source licence list (AboutLibraries), on its own so apps with their own licence screen don't carry it
+include(":kit-oss")
 // "Sample App": every feature behind a button, with sample update and release-notes text
 include(":sample")

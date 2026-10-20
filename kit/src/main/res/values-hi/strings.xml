@@ -6,9 +6,6 @@
     <string name="kit_update_later">बाद में</string>
     <string name="kit_update_ready">अपडेट डाउनलोड हो गया है।</string>
     <string name="kit_restart">रीस्टार्ट करें</string>
-    <string name="kit_open_source">ओपन सोर्स लाइसेंस</string>
-    <string name="kit_open_source_empty">इस बिल्ड में लाइसेंस सूची नहीं है।</string>
-    <string name="kit_licence_unknown">अन्य लाइसेंस</string>
     <string name="kit_review_title">%1$s पसंद आ रहा है?</string>
     <string name="kit_review_message">Google Play पर रेटिंग से बहुत मदद मिलती है, और इसमें बस कुछ सेकंड लगते हैं।</string>
     <string name="kit_review_rate">रेट करें</string>
