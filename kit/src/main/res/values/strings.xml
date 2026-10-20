@@ -27,6 +27,9 @@
     <!-- Promoting your own apps (AppPromos) -->
     <string name="kit_more_apps">More apps from us</string>
     <string name="kit_get">Get</string>
+    <string name="kit_open">Open</string>
+    <string name="kit_installed_thanks">Installed · Thanks!</string>
+    <string name="kit_installed">Installed</string>
     <string name="kit_not_now">Not now</string>
     <string name="kit_featured_title">Try %1$s</string>
     <!-- The "What's new" list and after-update dialog (WhatsNew) -->

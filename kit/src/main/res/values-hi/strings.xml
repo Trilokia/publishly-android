@@ -1,0 +1,37 @@
+<resources>
+    <!-- Hindi. Every user-facing string of the kit; the English file is the reference -->
+    <string name="kit_update_title">अपडेट उपलब्ध है</string>
+    <string name="kit_update_version">संस्करण %1$s उपलब्ध है।</string>
+    <string name="kit_update_now">अपडेट करें</string>
+    <string name="kit_update_later">बाद में</string>
+    <string name="kit_update_ready">अपडेट डाउनलोड हो गया है।</string>
+    <string name="kit_restart">रीस्टार्ट करें</string>
+    <string name="kit_open_source">ओपन सोर्स लाइसेंस</string>
+    <string name="kit_open_source_empty">इस बिल्ड में लाइसेंस सूची नहीं है।</string>
+    <string name="kit_licence_unknown">अन्य लाइसेंस</string>
+    <string name="kit_review_title">%1$s पसंद आ रहा है?</string>
+    <string name="kit_review_message">Google Play पर रेटिंग से बहुत मदद मिलती है, और इसमें बस कुछ सेकंड लगते हैं।</string>
+    <string name="kit_review_rate">रेट करें</string>
+    <string name="kit_review_later">अभी नहीं</string>
+    <string name="kit_review_never">दोबारा न पूछें</string>
+    <string name="kit_review_tap_star">एक स्टार पर टैप करें</string>
+    <string name="kit_review_hint_good">बहुत बढ़िया! Google Play पर रेटिंग से दूसरों को यह ऐप मिलता है।</string>
+    <string name="kit_review_hint_low">यह सुनकर दुख हुआ। हमें बताएँ क्या गलत हुआ, हम उसे ठीक करेंगे।</string>
+    <string name="kit_review_rate_play">Play पर रेट करें</string>
+    <string name="kit_review_send_feedback">फ़ीडबैक भेजें</string>
+    <string name="kit_feedback_subject">%1$s %2$s पर फ़ीडबैक</string>
+    <string name="kit_feedback_rating">मेरी रेटिंग: %1$d / 5</string>
+    <string name="kit_feedback_body">क्या बेहतर हो सकता है?</string>
+    <string name="kit_more_apps">हमारे और ऐप</string>
+    <string name="kit_get">पाएँ</string>
+    <string name="kit_open">खोलें</string>
+    <string name="kit_installed_thanks">इंस्टॉल है · धन्यवाद!</string>
+    <string name="kit_installed">इंस्टॉल है</string>
+    <string name="kit_not_now">अभी नहीं</string>
+    <string name="kit_featured_title">%1$s आज़माएँ</string>
+    <string name="kit_whats_new">नया क्या है</string>
+    <string name="kit_whats_new_in">%1$s में नया क्या है</string>
+    <string name="kit_whats_new_empty">अभी दिखाने के लिए कुछ नहीं।</string>
+    <string name="kit_ok">ठीक है</string>
+    <string name="kit_back">वापस</string>
+</resources>

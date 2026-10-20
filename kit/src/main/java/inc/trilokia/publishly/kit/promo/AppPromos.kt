@@ -14,12 +14,17 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
+/** One app of the feed, with whether this phone already has it. */
+data class PromoAppEntry(val app: PromoApp, val installed: Boolean)
+
 /**
  * Promotes your other apps from a JSON feed on your server ([PromoFeed] has the format). No ad
  * network, no SDK: the list is yours, and it changes when you edit the file.
  *
  * - [apps]: your apps that this phone doesn't have yet (the app itself and installed ones are
  *   dropped), best first. Show them in a "More apps from us" row or list.
+ * - [allApps]: the same list with the installed apps kept at the end, each marked, for a list
+ *   that also says "thanks" to people who already have them ([launch] opens one).
  * - [featured]: the one app the feed singles out, when it is due: not installed, not shown in
  *   the last [featuredRestMs], not dismissed for good. Show it in a dialog at a quiet moment.
  *
@@ -58,6 +63,9 @@ class AppPromos(
 
     /** Your apps this phone doesn't have yet, best first. */
     suspend fun apps(): List<PromoApp> = feed()?.let { pick(it, app.packageName, ::isInstalled) } ?: emptyList()
+
+    /** Every app in the feed but this one: the ones not installed first, then the installed ones, best first in each. */
+    suspend fun allApps(): List<PromoAppEntry> = feed()?.let { arrange(it, app.packageName, ::isInstalled) } ?: emptyList()
 
     /** The featured app, when it is due; call [markFeaturedShown] once you show it. */
     suspend fun featured(): FeaturedPromo? {
@@ -108,6 +116,15 @@ class AppPromos(
             .onFailure { Log.w(TAG, "Nothing can open $web") }
     }
 
+    /**
+     * Opens an installed app at its launcher screen. Falls back to [open] (the Play page) when it
+     * has no launcher screen, which add-on apps often don't.
+     */
+    fun launch(context: Context, promo: PromoApp) {
+        val intent = context.packageManager.getLaunchIntentForPackage(promo.packageName)
+        if (intent == null || runCatching { context.startActivity(intent) }.isFailure) open(context, promo)
+    }
+
     /** Opens the plain-View "More apps" screen ([MoreAppsActivity]). Compose apps use `MoreAppsList`. */
     fun openList(context: Context) {
         context.startActivity(
@@ -139,6 +156,16 @@ class AppPromos(
         /** The list rule on its own: drop [self] and anything installed, best first (ties keep feed order). */
         fun pick(feed: PromoFeed, self: String, isInstalled: (String) -> Boolean): List<PromoApp> =
             feed.apps.filter { it.packageName != self && !isInstalled(it.packageName) }.sortedByDescending { it.priority }
+
+        /**
+         * The full-list rule on its own: drop [self], keep the rest with their installed flag, the
+         * not-installed ones first, then the installed ones; best first within each group, ties in
+         * feed order.
+         */
+        fun arrange(feed: PromoFeed, self: String, isInstalled: (String) -> Boolean): List<PromoAppEntry> =
+            feed.apps.filter { it.packageName != self }
+                .map { PromoAppEntry(it, isInstalled(it.packageName)) }
+                .sortedWith(compareBy<PromoAppEntry> { it.installed }.thenByDescending { it.app.priority })
 
         /** The featured rule on its own. [lastShownAt] is 0 while never shown. */
         fun featuredDue(lastShownAt: Long, now: Long, restMs: Long, dismissed: Boolean): Boolean =

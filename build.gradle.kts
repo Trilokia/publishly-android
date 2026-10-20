@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.aboutlibraries.android) apply false
 }
 
-// One version for both library modules. Tag the repo with the same text (v1.0.0) for JitPack.
+// One version for both library modules. Tag the repo with the same text (v1.1.0) for JitPack.
 allprojects {
     group = "inc.trilokia"
-    version = "1.0.0"
+    version = "1.1.0"
 }

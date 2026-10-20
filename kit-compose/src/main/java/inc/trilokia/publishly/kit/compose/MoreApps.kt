@@ -6,9 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -32,9 +34,11 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,6 +67,7 @@ import inc.trilokia.publishly.kit.R
 import inc.trilokia.publishly.kit.promo.AppPromos
 import inc.trilokia.publishly.kit.promo.FeaturedPromo
 import inc.trilokia.publishly.kit.promo.PromoApp
+import inc.trilokia.publishly.kit.promo.PromoAppEntry
 import inc.trilokia.publishly.kit.promo.PromoIcons
 
 /**
@@ -99,6 +104,10 @@ class MoreAppsStyle(
     val listItemColors: Color,
     val showDivider: Boolean,
     val dividerColor: Color,
+    /** The "Installed · Thanks!" label on apps the phone already has; false leaves only the Open button. */
+    val showInstalledLabel: Boolean,
+    val installedContainer: Color,
+    val installedContent: Color,
 )
 
 object MoreAppsDefaults {
@@ -124,10 +133,13 @@ object MoreAppsDefaults {
         listItemColors: Color = Color.Transparent,
         showDivider: Boolean = true,
         dividerColor: Color = DividerDefaults.color,
+        showInstalledLabel: Boolean = true,
+        installedContainer: Color = MaterialTheme.colorScheme.secondaryContainer,
+        installedContent: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     ): MoreAppsStyle = MoreAppsStyle(
         title, titleColor, cardColors, cardShape, rowIconSize, listIconSize, iconCorner, rowName, listName, nameColor,
         tagline, taglineColor, badge, badgeContainer, badgeContent, showGetButton, rowItemWidth,
-        listItemColors, showDivider, dividerColor,
+        listItemColors, showDivider, dividerColor, showInstalledLabel, installedContainer, installedContent,
     )
 }
 
@@ -158,6 +170,18 @@ fun rememberPromoApps(promos: AppPromos): List<PromoApp> {
     return apps
 }
 
+/**
+ * Every app of the feed with its installed flag ([AppPromos.allApps]), or only the ones not
+ * installed when [showInstalled] is false; empty until the feed is read.
+ */
+@Composable
+fun rememberPromoEntries(promos: AppPromos, showInstalled: Boolean = true): List<PromoAppEntry> {
+    val entries by produceState(initialValue = emptyList<PromoAppEntry>(), promos, showInstalled) {
+        value = if (showInstalled) promos.allApps() else promos.apps().map { PromoAppEntry(it, installed = false) }
+    }
+    return entries
+}
+
 /** A promo app's icon, rounded; a soft square while it loads or when there is none. */
 @Composable
 fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, corner: Float = 0.25f) {
@@ -173,9 +197,11 @@ fun PromoIcon(url: String?, modifier: Modifier = Modifier, size: Dp = 56.dp, cor
 }
 
 /**
- * A card with a scrolling row of your other apps (icon + name; tap opens Play). Draws nothing
- * at all when there is nothing to show, so it can sit on the home screen unconditionally.
- * [style] changes each element; [item] replaces one app's cell with your own composable.
+ * A card with a scrolling row of your other apps (icon + name; tap opens Play, or the app when it
+ * is installed). Draws nothing at all when there is nothing to show, so it can sit on the home
+ * screen unconditionally. [showInstalled] keeps the apps the phone already has, after the others,
+ * with an "Installed" label. [style] changes each element; [item] replaces one app's cell with
+ * your own composable and gets the installed flag.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -185,31 +211,35 @@ fun MoreAppsRow(
     title: String = stringResource(R.string.kit_more_apps),
     style: MoreAppsStyle = MoreAppsDefaults.style(),
     layout: MoreAppsRowLayout = MoreAppsRowLayout.Scroll,
-    item: (@Composable (PromoApp) -> Unit)? = null,
+    showInstalled: Boolean = true,
+    item: (@Composable (app: PromoApp, installed: Boolean) -> Unit)? = null,
 ) {
-    val apps = rememberPromoApps(promos)
-    if (apps.isEmpty()) return
+    val entries = rememberPromoEntries(promos, showInstalled)
+    if (entries.isEmpty()) return
     val context = LocalContext.current
-    val cell: @Composable (PromoApp) -> Unit = item ?: { app -> PromoAppCell(app, style) { promos.open(context, app) } }
+    val cell: @Composable (PromoAppEntry) -> Unit = { entry ->
+        if (item != null) item(entry.app, entry.installed)
+        else PromoAppCell(entry.app, style, entry.installed) { promos.openOrLaunch(context, entry) }
+    }
     Card(modifier.fillMaxWidth(), colors = style.cardColors, shape = style.cardShape) {
         Column(Modifier.padding(vertical = 12.dp)) {
             Text(title, style = style.title, color = style.titleColor, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(8.dp))
             when (layout) {
                 MoreAppsRowLayout.Scroll -> LazyRow(contentPadding = PaddingValues(horizontal = 8.dp)) {
-                    items(apps, key = { it.packageName }) { app -> cell(app) }
+                    items(entries, key = { it.app.packageName }) { entry -> cell(entry) }
                 }
                 MoreAppsRowLayout.Wrap -> FlowRow(Modifier.padding(horizontal = 8.dp)) {
-                    apps.forEach { app -> cell(app) }
+                    entries.forEach { entry -> cell(entry) }
                 }
             }
         }
     }
 }
 
-/** The default cell of [MoreAppsRow]: icon with its badge, the name under it. */
+/** The default cell of [MoreAppsRow]: icon with its badge, the name under it, the "Installed" label when it is. */
 @Composable
-fun PromoAppCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+fun PromoAppCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     Column(
         modifier = Modifier
             .width(style.rowItemWidth)
@@ -231,13 +261,17 @@ fun PromoAppCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(),
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
+        // The cell is narrow, so just "Installed" here; the lists have room for the thanks
+        if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 4.dp), short = true)
     }
 }
 
 /**
  * The full-screen list of your apps. Put it under your own top bar. [layout] picks the
- * arrangement, [style] changes each element, [row] replaces the whole entry with your own
- * composable (in [MoreAppsLayout.Grid] it becomes the cell).
+ * arrangement, [style] changes each element, [showInstalled] keeps the apps the phone already has
+ * (after the others, with an "Installed" label and an Open button), and [row] replaces the whole
+ * entry with your own composable, which gets the installed flag (in [MoreAppsLayout.Grid] it
+ * becomes the cell).
  */
 @Composable
 fun MoreAppsList(
@@ -247,20 +281,22 @@ fun MoreAppsList(
     layout: MoreAppsLayout = MoreAppsLayout.List,
     columns: Int = 2,
     contentPadding: PaddingValues = PaddingValues(0.dp),
-    row: (@Composable (PromoApp) -> Unit)? = null,
+    showInstalled: Boolean = true,
+    row: (@Composable (app: PromoApp, installed: Boolean) -> Unit)? = null,
 ) {
-    val apps = rememberPromoApps(promos)
+    val entries = rememberPromoEntries(promos, showInstalled)
     val context = LocalContext.current
+    val open: (PromoAppEntry) -> Unit = { promos.openOrLaunch(context, it) }
     when (layout) {
         MoreAppsLayout.List -> LazyColumn(modifier, contentPadding = contentPadding) {
-            items(apps, key = { it.packageName }) { app ->
-                if (row != null) row(app) else PromoAppRow(app, style, onOpen = { promos.open(context, app) })
+            items(entries, key = { it.app.packageName }) { e ->
+                if (row != null) row(e.app, e.installed) else PromoAppRow(e.app, style, e.installed) { open(e) }
                 if (style.showDivider) HorizontalDivider(color = style.dividerColor)
             }
         }
         MoreAppsLayout.Compact -> LazyColumn(modifier, contentPadding = contentPadding) {
-            items(apps, key = { it.packageName }) { app ->
-                if (row != null) row(app) else PromoAppCompactRow(app, style, onOpen = { promos.open(context, app) })
+            items(entries, key = { it.app.packageName }) { e ->
+                if (row != null) row(e.app, e.installed) else PromoAppCompactRow(e.app, style, e.installed) { open(e) }
                 if (style.showDivider) HorizontalDivider(color = style.dividerColor)
             }
         }
@@ -273,8 +309,8 @@ fun MoreAppsList(
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(apps, key = { it.packageName }) { app ->
-                if (row != null) row(app) else PromoAppCard(app, style, onOpen = { promos.open(context, app) })
+            items(entries, key = { it.app.packageName }) { e ->
+                if (row != null) row(e.app, e.installed) else PromoAppCard(e.app, style, e.installed) { open(e) }
             }
         }
         MoreAppsLayout.Grid -> LazyVerticalGrid(
@@ -288,16 +324,16 @@ fun MoreAppsList(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(apps, key = { it.packageName }) { app ->
-                if (row != null) row(app) else PromoAppGridCell(app, style, onOpen = { promos.open(context, app) })
+            items(entries, key = { it.app.packageName }) { e ->
+                if (row != null) row(e.app, e.installed) else PromoAppGridCell(e.app, style, e.installed) { open(e) }
             }
         }
     }
 }
 
-/** The [MoreAppsLayout.Compact] entry: icon and name, nothing else. */
+/** The [MoreAppsLayout.Compact] entry: icon and name, nothing else (plus the "Installed" label when it is). */
 @Composable
-fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -307,14 +343,17 @@ fun PromoAppCompactRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.st
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PromoIcon(app.iconUrl, size = 40.dp, corner = style.iconCorner)
-        Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(app.name, style = style.listName, color = style.nameColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 2.dp))
+        }
         app.badge?.let { PromoBadge(it, style) }
     }
 }
 
-/** The [MoreAppsLayout.Cards] entry: one elevated card per app. */
+/** The [MoreAppsLayout.Cards] entry: one elevated card per app; Open instead of Get when it is installed. */
 @Composable
-fun PromoAppCard(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+fun PromoAppCard(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     ElevatedCard(onClick = onOpen, shape = style.cardShape) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             PromoIcon(app.iconUrl, size = style.rowIconSize, corner = style.iconCorner)
@@ -327,17 +366,19 @@ fun PromoAppCard(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(),
                     }
                 }
                 if (app.tagline.isNotBlank()) {
-                    Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                    // One line for an installed app, so its label fits under it
+                    Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = if (installed) 1 else 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
                 }
+                if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 6.dp))
             }
-            if (style.showGetButton) FilledTonalButton(onClick = onOpen) { Text(stringResource(R.string.kit_get)) }
+            if (style.showGetButton) GetOrOpenButton(installed, onOpen)
         }
     }
 }
 
-/** The [MoreAppsLayout.Grid] cell: icon on top, name, tagline, Get. */
+/** The [MoreAppsLayout.Grid] cell: icon on top, name, tagline, Get (or the "Installed" label and Open). */
 @Composable
-fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     Card(onClick = onOpen, colors = style.cardColors, shape = style.cardShape) {
         Column(Modifier.fillMaxWidth().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box {
@@ -349,9 +390,10 @@ fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.styl
             if (app.tagline.isNotBlank()) {
                 Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
             }
+            if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 6.dp))
             if (style.showGetButton) {
                 Spacer(Modifier.height(10.dp))
-                FilledTonalButton(onClick = onOpen) { Text(stringResource(R.string.kit_get)) }
+                GetOrOpenButton(installed, onOpen)
             }
         }
     }
@@ -359,7 +401,7 @@ fun PromoAppGridCell(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.styl
 
 /** The default entry of [MoreAppsList], for reuse inside your own list. */
 @Composable
-fun PromoAppRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), onOpen: () -> Unit) {
+fun PromoAppRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), installed: Boolean = false, onOpen: () -> Unit) {
     ListItem(
         modifier = Modifier.clickable(onClick = onOpen),
         leadingContent = { PromoIcon(app.iconUrl, size = style.listIconSize, corner = style.iconCorner) },
@@ -379,14 +421,44 @@ fun PromoAppRow(app: PromoApp, style: MoreAppsStyle = MoreAppsDefaults.style(), 
                 }
             }
         },
-        supportingContent = if (app.tagline.isBlank()) null else {
-            { Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+        supportingContent = if (app.tagline.isBlank() && !(installed && style.showInstalledLabel)) null else {
+            {
+                Column {
+                    if (app.tagline.isNotBlank()) {
+                        Text(app.tagline, style = style.tagline, color = style.taglineColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (installed && style.showInstalledLabel) InstalledLabel(style, Modifier.padding(top = 4.dp))
+                }
+            }
         },
         trailingContent = if (!style.showGetButton) null else {
-            { FilledTonalButton(onClick = onOpen) { Text(stringResource(R.string.kit_get)) } }
+            { GetOrOpenButton(installed, onOpen) }
         },
         colors = ListItemDefaults.colors(containerColor = style.listItemColors),
     )
+}
+
+/** The small "Installed · Thanks!" chip: a check and the text, on the style's installed colours. [short] drops the thanks, for narrow cells. */
+@Composable
+fun InstalledLabel(style: MoreAppsStyle = MoreAppsDefaults.style(), modifier: Modifier = Modifier, short: Boolean = false) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(6.dp), color = style.installedContainer, contentColor = style.installedContent) {
+        Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(12.dp))
+            Text(stringResource(if (short) R.string.kit_installed else R.string.kit_installed_thanks), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** "Get" (filled tonal) for an app to install, "Open" (outlined) for one already on the phone. */
+@Composable
+private fun GetOrOpenButton(installed: Boolean, onClick: () -> Unit) {
+    if (installed) OutlinedButton(onClick = onClick) { Text(stringResource(R.string.kit_open)) }
+    else FilledTonalButton(onClick = onClick) { Text(stringResource(R.string.kit_get)) }
+}
+
+/** The Play page for an app to install, the app itself when it is installed. */
+private fun AppPromos.openOrLaunch(context: android.content.Context, entry: PromoAppEntry) {
+    if (entry.installed) launch(context, entry.app) else open(context, entry.app)
 }
 
 /**

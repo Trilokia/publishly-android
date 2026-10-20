@@ -51,6 +51,35 @@ class AppPromosTest {
     }
 
     @Test
+    fun `the full list keeps installed apps, after the others`() {
+        val installed = setOf("inc.trilokia.cardjuggler", "inc.trilokia.addon.instant.boost")
+        val all = AppPromos.arrange(feed, self = "inc.trilokia.pubgfxtool.free") { it in installed }
+        assertEquals(
+            listOf(
+                "inc.trilokia.pubgfxtool" to false,
+                "inc.trilokia.gfxtool.free" to false,
+                "inc.trilokia.gfxtool" to false,
+                "inc.trilokia.addon.graphics.manager" to false,
+                "inc.trilokia.addon.preference.manager" to false,
+                "inc.trilokia.cardjuggler" to true,
+                "inc.trilokia.addon.instant.boost" to true,
+            ),
+            all.map { it.app.packageName to it.installed },
+        )
+    }
+
+    @Test
+    fun `the full list sorts each group by priority, ties in feed order, and never shows this app`() {
+        val f = PromoFeed.parse(
+            """{"apps":[{"package":"me","name":"Me","priority":99},{"package":"a","name":"A"},{"package":"b","name":"B","priority":5},
+            {"package":"c","name":"C"},{"package":"d","name":"D","priority":5}]}""",
+        )
+        val all = AppPromos.arrange(f, self = "me") { it == "a" || it == "d" }
+        assertEquals(listOf("b", "c", "d", "a"), all.map { it.app.packageName })
+        assertEquals(listOf(false, false, true, true), all.map { it.installed })
+    }
+
+    @Test
     fun `equal priorities keep the feed's order`() {
         val f = PromoFeed.parse("""{"apps":[{"package":"x","name":"X"},{"package":"y","name":"Y","priority":5},{"package":"z","name":"Z"}]}""")
         assertEquals(listOf("y", "x", "z"), AppPromos.pick(f, "me") { false }.map { it.packageName })

@@ -332,14 +332,16 @@ The feedback mail opens in the user's mail app with your address, the subject, a
 
 ## 6. Your own apps' promo (`AppPromos`)
 
-Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows the ones the phone doesn't have yet. Edit the file, and all apps pick it up within a day.
+Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows them: the ones the phone doesn't have yet first, then the ones it has, with an "Installed · Thanks!" label and an Open button. Edit the file, and all apps pick it up within a day.
 
 ```mermaid
 flowchart TD
-    feed[apps.json on your server] -- "fetched once a day, kept for offline" --> filter{Installed on this phone, or this app itself?}
-    bundled[bundledJson in assets] -- "until the server has answered once" --> filter
-    filter -- yes --> hide([Left out])
-    filter -- no --> show[MoreAppsRow, MoreAppsList, openList] -- Get --> play([Play listing, this app as the referrer])
+    feed[apps.json on your server] -- "fetched once a day, kept for offline" --> self{This app itself?}
+    bundled[bundledJson in assets] -- "until the server has answered once" --> self
+    self -- yes --> hide([Left out])
+    self -- no --> inst{Installed on this phone?}
+    inst -- no --> show[MoreAppsRow, MoreAppsList: first, best first] -- Get --> play([Play listing, this app as the referrer])
+    inst -- yes --> thanks["Same list, after the others: Installed · Thanks!"] -- Open --> launch([The app itself, or its Play page when it has no launcher screen])
     feed -- featured --> due{Not installed, not shown for 7 days, not dismissed?}
     due -- yes --> dialog[Featured dialog]
     dialog -- Get --> play
@@ -375,6 +377,7 @@ Compose apps:
 ```kotlin
 MoreAppsRow(promos)          // a card with a scrolling row of icons; draws nothing when there's nothing to show
 MoreAppsList(promos)         // the full list with taglines and "Get" buttons, on its own screen
+MoreAppsList(promos, showInstalled = false)   // only the apps the phone doesn't have (the 1.0 behaviour)
 FeaturedPromoDialog(promos)  // the featured app, in a dialog, when it's due (not installed, once a week, until dismissed)
 ```
 
@@ -387,7 +390,7 @@ lifecycleScope.launch {
 }
 ```
 
-`promos.apps()` gives the filtered list for your own UI, `PromoIcons.load(context, url)` the icons (cached on disk). The featured dialog rests 7 days between showings (`featuredRestMs`), and "Not now" ends it for that app on that phone.
+`promos.apps()` gives the not-installed list for your own UI, `promos.allApps()` every app with its installed flag (`PromoAppEntry`), `promos.launch(context, app)` opens an installed one, `PromoIcons.load(context, url)` the icons (cached on disk). `showInstalled = false` on the row or the list hides installed apps, as 1.0 did; `MoreAppsDefaults.style(showInstalledLabel = false, installedContainer = …, installedContent = …)` changes the label. The featured dialog never promotes an installed app. The featured dialog rests 7 days between showings (`featuredRestMs`), and "Not now" ends it for that app on that phone.
 
 <br clear="right">
 
@@ -587,7 +590,7 @@ OpenSourceScreen(layout = OpenSourceLayout.ByLicence)              // List, Comp
 <img src="docs/screenshots/licences-bylicence.png" width="160" alt="Licences grouped by licence">
 </p>
 
-When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app -> MyRow(app) }`, `MoreAppsRow(promos) { app -> MyCell(app) }` (the data classes `ReleaseNote` and `PromoApp` carry everything), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
+When a style isn't enough, take over the whole entry: `WhatsNewList(whatsNew) { note -> MyRow(note) }`, `MoreAppsList(promos) { app, installed -> MyRow(app, installed) }`, `MoreAppsRow(promos) { app, installed -> MyCell(app, installed) }` (the data classes `ReleaseNote` and `PromoApp` carry everything), and `OpenSourceScreen(onLibraryClick = { library -> ... })` for your own licence dialog. `ReleaseNoteRow` and `PromoAppRow` are the default entries, for reuse inside your own lists.
 
 The sample's More apps and Licences tabs have a switch for every layout. The plain-View screens follow `KitTheme` (colours, base themes, dialog style) as described above; text sizes there come from the system's Material appearances.
 
@@ -613,7 +616,7 @@ The sample's More apps and Licences tabs have a switch for every layout. The pla
 | Home: Rate this app | `ReviewAsk`, always due here: our prompt (in the chosen style), then Play's sheet or the Play listing |
 | Home: This version's notes | `whatsNew.showDialog`, forced, so it shows every time |
 | Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
-| More apps tab | `MoreAppsList` |
+| More apps tab | `MoreAppsList`, every layout, with a switch to show or hide the apps the phone already has |
 | What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |
 | Licences tab | `OpenSourceScreen` |
 
