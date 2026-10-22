@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+- Each published module's POM carries its own name ("Publishly Kit", "Publishly Kit Compose", "Publishly Kit OSS"), a description, the project URL, the Apache 2.0 licence and the source link. Before, JitPack filled every `<name>` with "Trilokia/publishly-android", so apps that build their licence list from POMs showed the library two or three times under one name. No code changes.
+
 ## 2.0.0
 
 The one change a 1.x app must make: if it shows the open source licence list, add `implementation("com.github.Trilokia.publishly-android:kit-oss:v2.0.0")`. Everything else compiles and looks as before.
