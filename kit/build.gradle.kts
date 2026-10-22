@@ -51,6 +51,24 @@ publishing {
             artifactId = "kit"
             version = project.version.toString()
             afterEvaluate { from(components["release"]) }
+            // JitPack otherwise fills <name> with "Trilokia/publishly-android" for every module, so licence
+            // screens built from POMs list the same name twice
+            pom {
+                name.set("Publishly Kit")
+                description.set("Play in-app updates with an update.json fallback, a review prompt and a \"More apps\" feed for Android apps.")
+                url.set("https://github.com/Trilokia/publishly-android")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/Trilokia/publishly-android")
+                    connection.set("scm:git:https://github.com/Trilokia/publishly-android.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/Trilokia/publishly-android.git")
+                }
+            }
         }
     }
 }
