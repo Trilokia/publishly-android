@@ -37,7 +37,7 @@ android {
 
 dependencies {
     implementation(project(":kit-compose"))
-    implementation(project(":kit-oss"))
+    implementation(project(":kit-oss-compose"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

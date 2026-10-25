@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -49,9 +52,10 @@ import com.mikepenz.aboutlibraries.ui.compose.LibraryDefaults
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.mikepenz.aboutlibraries.ui.compose.m3.chipColors
 import com.mikepenz.aboutlibraries.ui.compose.m3.libraryColors
+import inc.trilokia.publishly.kit.oss.LicenceText
+import inc.trilokia.publishly.kit.oss.OpenSource
 import inc.trilokia.publishly.kit.oss.R
 import inc.trilokia.publishly.kit.R as KitR
-import inc.trilokia.publishly.kit.oss.OpenSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -140,8 +144,9 @@ fun rememberLibraries(): Libs? {
 
 /**
  * The "Open source licences" list for Compose apps, fed from the `aboutlibraries.json` the Gradle
- * plugin wrote for this app (see [OpenSource]). Tap a row for the licence text. Put it on its own
- * screen with your app's top bar. In the `kit-oss` module. [layout] picks the arrangement, [style] changes each element,
+ * plugin wrote for this app (see [OpenSource]), sorted by [OpenSource.byName]. Tap a row for the
+ * licence text ([LicenceDialog]). Put it on its own screen with your app's top bar. In the
+ * `kit-oss-compose` module. [layout] picks the arrangement, [style] changes each element,
  * [onLibraryClick] replaces the licence dialog with your own handling, and [row] replaces the whole
  * entry in every layout but [OpenSourceLayout.List].
  */
@@ -159,6 +164,10 @@ fun OpenSourceScreen(
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
     }
+    // One licence dialog for every layout, AboutLibraries' List included
+    var open by remember { mutableStateOf<Library?>(null) }
+    open?.let { LicenceDialog(it, style, onDismiss = { open = null }) }
+    val click: (Library) -> Unit = onLibraryClick ?: { open = it }
     if (layout == OpenSourceLayout.List) {
         LibrariesContainer(
             libraries = libs,
@@ -184,7 +193,7 @@ fun OpenSourceScreen(
                 descriptionTextStyle = style.description,
                 licensesTextStyle = style.licence,
             ),
-            onLibraryClick = onLibraryClick,
+            onLibraryClick = click,
             divider = if (style.showDivider) {
                 { HorizontalDivider(color = style.dividerColor) }
             } else {
@@ -194,10 +203,7 @@ fun OpenSourceScreen(
         return
     }
 
-    // The other layouts are drawn here, with the same licence dialog on tap
-    var open by remember { mutableStateOf<Library?>(null) }
-    open?.let { LicenceDialog(it, style, onDismiss = { open = null }) }
-    val click: (Library) -> Unit = onLibraryClick ?: { open = it }
+    // The other layouts are drawn here
     val libraries = libs.libraries
     Surface(modifier.fillMaxSize(), color = style.background, contentColor = style.content) {
         when (layout) {
@@ -221,8 +227,9 @@ fun OpenSourceScreen(
             }
             OpenSourceLayout.ByLicence -> {
                 val groups = remember(libraries) {
+                    // Libraries keep their name order inside each group; "Other licences" comes last
                     libraries.groupBy { it.licenses.firstOrNull()?.name ?: "" }
-                        .toSortedMap(compareBy({ it.isEmpty() }, { it }))
+                        .toSortedMap(compareBy<String> { it.isEmpty() }.then(OpenSource.nameOrder()))
                 }
                 LazyColumn(contentPadding = contentPadding) {
                     groups.forEach { (licence, libs) ->
@@ -313,15 +320,44 @@ fun LibraryCard(library: Library, style: OpenSourceStyle = OpenSourceDefaults.st
     }
 }
 
-/** The licence text of one library, the same dialog in every layout. */
+/**
+ * The licence text of one library ([LicenceText.reflow], so it isn't hard-wrapped at 72 columns),
+ * the same dialog in every layout. The library's website is the first line of the scrolling text,
+ * so no text length or font scale pushes it out of the dialog.
+ */
 @Composable
 fun LicenceDialog(library: Library, style: OpenSourceStyle = OpenSourceDefaults.style(), onDismiss: () -> Unit) {
     val licence = library.licenses.firstOrNull()
-    val text = licence?.licenseContent?.takeIf { it.isNotBlank() } ?: licence?.url ?: library.description.orEmpty()
+    val raw = licence?.licenseContent?.takeIf { it.isNotBlank() } ?: licence?.url ?: library.description.orEmpty()
+    val text = remember(raw) { LicenceText.reflow(raw) }
+    val site = library.website ?: licence?.url
+    val uriHandler = LocalUriHandler.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(library.name) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) { Text(text, style = MaterialTheme.typography.bodySmall) } },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (site != null) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clickable { runCatching { uriHandler.openUri(site) } },
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        Text(
+                            site.removePrefix("https://").removePrefix("http://"),
+                            style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                Text(text, style = MaterialTheme.typography.bodySmall)
+            }
+        },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(KitR.string.kit_ok)) } },
         containerColor = style.background,
         textContentColor = style.content,

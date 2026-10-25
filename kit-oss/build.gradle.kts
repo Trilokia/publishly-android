@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
     `maven-publish`
 }
 
@@ -18,9 +17,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
-        compose = true
-    }
     publishing {
         singleVariant("release") {
             withSourcesJar()
@@ -34,11 +30,11 @@ dependencies {
     // The licence list reader: `api`, because OpenSource.libraries() hands out its types. The app
     // applies the matching Gradle plugin (see README)
     api(libs.aboutlibraries.core)
-    implementation(platform(libs.compose.bom))
-    implementation(libs.compose.ui)
-    implementation(libs.compose.material3)
-    // AboutLibraries' own Material 3 list, for OpenSourceScreen's List layout
-    implementation(libs.aboutlibraries.compose.m3)
+    // No Compose here: the AboutLibraries plugin lists every runtime dependency, so a View app's
+    // licence screen would name Compose libraries it doesn't carry. OpenSourceScreen is in kit-oss-compose
+    testImplementation(libs.junit)
+    // Real org.json for JVM unit tests (Android's copy only works on a device)
+    testImplementation(libs.org.json)
 }
 
 publishing {
@@ -52,7 +48,7 @@ publishing {
             // screens built from POMs list the same name twice
             pom {
                 name.set("Publishly Kit OSS")
-                description.set("Open-source licence list screen for apps that use Publishly Kit.")
+                description.set("Open-source licence list (data and a plain-View screen, no Compose) for apps that use Publishly Kit.")
                 url.set("https://github.com/Trilokia/publishly-android")
                 licenses {
                     license {

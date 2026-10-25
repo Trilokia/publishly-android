@@ -51,7 +51,8 @@ Recorded from the sample app in [`sample/`](sample) (section 11) on an API 33 em
 | --- | --- |
 | `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
 | `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
-| `kit-oss` | The open source licence list: `OpenSource`, `OpenSourceActivity` (View) and `OpenSourceScreen()` (Compose), on [AboutLibraries](https://github.com/mikepenz/AboutLibraries). Separate, so an app with its own licence screen doesn't carry it. Depends on `kit`. |
+| `kit-oss` | The open source licence list for View apps: `OpenSource` (the data, `open()`) and `OpenSourceActivity`, on [AboutLibraries](https://github.com/mikepenz/AboutLibraries) core. Separate, so an app with its own licence screen doesn't carry it, and with no Compose in it, so a View app's licence list doesn't name Compose. Depends on `kit`. |
+| `kit-oss-compose` | `OpenSourceScreen()`, the licence list for Compose apps (list, compact, cards, by licence). Depends on `kit-oss`. |
 | `sample` | "Sample App": a Material You app with every feature behind a button, sample update and release-notes text, the real Trilokia promo feed. |
 
 Kotlin, minSdk 24, built with AGP 9.0.1 / compileSdk 36.
@@ -85,17 +86,20 @@ dependencyResolutionManagement {
 }
 ```
 
-In the app module (the latest release is `v2.0.1`; [CHANGELOG.md](CHANGELOG.md) lists what changed, and what 2.0 asks of a 1.x app: one Gradle line for the licence list):
+In the app module (the latest release is `v2.1.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed, and the one Gradle line 2.1 asks of a Compose app that shows the licence list):
 
 ```kotlin
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit:v2.0.1")
-    implementation("com.github.Trilokia.publishly-android:kit-compose:v2.0.1")   // Compose apps only
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.0.1")       // the open source licence list, see section 8
+    implementation("com.github.Trilokia.publishly-android:kit:v2.1.0")
+    implementation("com.github.Trilokia.publishly-android:kit-compose:v2.1.0")       // Compose apps only
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.1.0")           // the open source licence list, View apps (OpenSource.open), see section 8
+    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")   // the licence list for Compose apps (OpenSourceScreen); brings kit-oss with it
 }
 ```
 
-Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:2.0.0` / `inc.trilokia:kit-compose:2.0.0` / `inc.trilokia:kit-oss:2.0.0`.
+A View app takes `kit` and `kit-oss`; a Compose app takes `kit`, `kit-compose` and `kit-oss-compose`.
+
+Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:2.1.0` / `inc.trilokia:kit-compose:2.1.0` / `inc.trilokia:kit-oss:2.1.0` / `inc.trilokia:kit-oss-compose:2.1.0`.
 
 The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
 
@@ -524,7 +528,9 @@ lifecycleScope.launch { whatsNew.showDialog(activity, whatsNew.pending()) }
 
 ## 8. Open source licences
 
-A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back. It lives in its own module, `kit-oss`, so an app with a licence screen of its own doesn't carry AboutLibraries; the classes keep their package names.
+A screen listing every library the app uses, with its version, author and licence text. Nothing is written by hand: the [AboutLibraries](https://github.com/mikepenz/AboutLibraries) Gradle plugin scans the app's dependencies at build time and writes `res/raw/aboutlibraries.json`; Publishly Kit reads it back. It lives in its own modules, so an app with a licence screen of its own doesn't carry AboutLibraries: `kit-oss` has the data and the View screen and no Compose in it (the plugin lists every runtime dependency, so a View app's licence list would otherwise name Compose libraries it never uses), `kit-oss-compose` adds `OpenSourceScreen`. The classes keep their package names (`inc.trilokia.publishly.kit.oss`, `inc.trilokia.publishly.kit.compose`).
+
+Both screens sort the list by name as people read it (case-insensitive, the language's own rules, so `libadb-android` sits under L), show each licence text reflowed for a phone (the SPDX texts are hard-wrapped at 72 columns; `LicenceText.reflow` joins the paragraphs and keeps titles, dates and addresses as they are, without losing a word) and put the library's website as the first line of the scrolling text, so it is never cut off by the dialog's edge.
 
 ```mermaid
 flowchart LR
@@ -550,7 +556,8 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.0.1")   // with kit (and kit-compose for OpenSourceScreen)
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.1.0")           // View apps: OpenSource.open(context)
+    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")   // Compose apps: OpenSourceScreen() (brings kit-oss with it)
 }
 ```
 
@@ -563,9 +570,10 @@ dependencies {
 Then show it:
 
 ```kotlin
-OpenSource.open(context)        // View apps: a plain list screen in the app's colours
-OpenSourceScreen()              // Compose apps: AboutLibraries' Material 3 list, on your own screen
-OpenSource.libraries(context)   // the raw data, for your own UI
+OpenSource.open(context)        // View apps (kit-oss): a plain list screen in the app's colours
+OpenSourceScreen()              // Compose apps (kit-oss-compose): AboutLibraries' Material 3 list, on your own screen
+OpenSource.libraries(context)   // the raw data, sorted by name, for your own UI
+LicenceText.reflow(text)        // a licence text unwrapped for a phone, for your own dialog
 ```
 
 The plugin needs network on the build machine to fetch SPDX licence texts the first time (cached after). Without the plugin, the screen just says "No licence list in this build".
@@ -792,7 +800,7 @@ The strings, and where each one shows (the review prompt's labels also reach you
 | `kit_back` | Back | View screens' back arrow |
 | `kit_open_source` | Open source licences | Licence screen (`kit-oss`) |
 | `kit_open_source_empty` | No licence list in this build. | Licence screen (`kit-oss`) |
-| `kit_licence_unknown` | Other licences | Licence screen, By licence (`kit-oss`) |
+| `kit_licence_unknown` | Other licences | Licence screen, By licence (`kit-oss-compose`) |
 
 A language the kit doesn't ship falls back to English; add a `values-xx/strings.xml` with the same names to your app and the kit speaks it.
 
@@ -821,19 +829,20 @@ A language the kit doesn't ship falls back to English; add a `values-xx/strings.
 | Home: the View rows | `promos.openList`, `whatsNew.openList`, `OpenSource.open`: the plain-View screens in the app's colours |
 | More apps tab | `MoreAppsList`, every layout, with a switch to show or hide the apps the phone already has |
 | What's new tab | `WhatsNewList` on the bundled notes, or on a GitHub repo's commits |
-| Licences tab | `OpenSourceScreen` |
+| Licences tab | `OpenSourceScreen`, every layout |
 
 The recordings at the top of this page are this app. The update dialog, the featured-app dialog and the automatic what's-new dialog appear on launch when they are due. Flip the phone's dark mode, or change the wallpaper, to see every screen follow: `SampleTheme` in the sample is the whole theme setup, `SyncKitTheme()` inside it is what carries the colours to the View screens.
 
 ## 12. Build and test
 
 ```sh
-./gradlew :kit:testDebugUnitTest   # unit tests: real update JSON, the promo template, real Play pages and GitHub answers, the review and what's-new rules
+./gradlew :kit:testDebugUnitTest      # unit tests: real update JSON, the promo template, real Play pages and GitHub answers, the review and what's-new rules
+./gradlew :kit-oss:testDebugUnitTest  # the licence text reflow on a real aboutlibraries.json, the name order
 ./gradlew :sample:installDebug        # the sample app
-./gradlew publishToMavenLocal         # the three library modules into ~/.m2
+./gradlew publishToMavenLocal         # the four library modules into ~/.m2
 ```
 
-Tag the repo (`v2.0.1`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
+Tag the repo (`v2.1.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
 
 ## License
 

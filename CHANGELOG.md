@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0
+
+The one change a 2.0 Compose app must make: if it shows `OpenSourceScreen`, add `implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")` (it brings `kit-oss` with it). View apps change nothing. Four fixes to the licence list, found when Gamers GLTool Pro (a Java, View app) adopted 2.0.1:
+
+- **Breaking for Compose apps:** `OpenSourceScreen` (and `OpenSourceStyle`, `OpenSourceLayout`, `LicenceDialog`, `rememberLibraries`) moved to a new `kit-oss-compose` module, with the same package name. `kit-oss` keeps `OpenSource`, `OpenSourceActivity` and AboutLibraries core only, with no Compose: before, it pulled Compose UI, Material 3 and AboutLibraries' Compose list in at runtime even for apps that only call `OpenSource.open()`, so the AboutLibraries plugin listed all those Compose artifacts in a View app's licences (R8 strips every Compose class from the release, so the list named libraries the app didn't ship).
+- **Licence text reflowed for a phone.** SPDX texts are hard-wrapped at about 72 columns, so every line wrapped again into ragged half lines. `LicenceText.reflow` (public, pure Kotlin) joins each paragraph into one line and keeps titles, "Version 3, 29 June 2007", addresses and lists of short lines as they are; no word is lost or reordered. Tested on every text of a real `aboutlibraries.json` (Apache-2.0, MIT, GPL-2.0 with the Classpath Exception, LGPL-3.0, OFL-1.1). Both screens use it.
+- **The website link is inside the scrolling text,** its first line, in both dialogs. As a neutral button under OK it was cut off by the dialog's rounded bottom edge on long texts (LGPL + GPL, 42k characters, API 35, 1080x2400). Checked with MIT and LGPL at font scale 1.0 and 1.3, light and dark.
+- **The list sorts by name as people read it:** case-insensitive and locale-aware (`java.text.Collator`, PRIMARY strength), tie-broken by `uniqueId`, in `OpenSource.libraries()` (so `OpenSourceActivity`, `OpenSourceScreen` and the By licence groups alike). Before, `libadb-android`, `spake2-java` and `sun-security-android` came after every capitalised name. `OpenSource.byName()` and `OpenSource.nameOrder()` are the comparators, for your own UI.
+- Sample: depends on `kit-oss-compose`.
+
 ## 2.0.1
 
 - Each published module's POM carries its own name ("Publishly Kit", "Publishly Kit Compose", "Publishly Kit OSS"), a description, the project URL, the Apache 2.0 licence and the source link. Before, JitPack filled every `<name>` with "Trilokia/publishly-android", so apps that build their licence list from POMs showed the library two or three times under one name. No code changes.
