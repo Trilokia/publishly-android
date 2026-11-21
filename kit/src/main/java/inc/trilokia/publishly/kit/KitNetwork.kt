@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
 
 /**
@@ -13,8 +14,11 @@ import androidx.core.content.ContextCompat
  * fetched: the JSON update file, the promo feed, the icons and the what's-new sources answer from
  * their bundled copies and caches, as they do offline. Play's updates and review sheet are not
  * affected: they talk to the Play Store app, not the network.
+ *
+ * Public only so the kit's other modules (kit-promo) share the one check; not for app code.
  */
-internal object KitNetwork {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+object KitNetwork {
     private const val TAG = "PublishlyKit"
 
     @Volatile

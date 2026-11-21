@@ -7,7 +7,7 @@
 <p align="center">
   <strong>The in-app side of <a href="https://github.com/Trilokia/publishly">Publishly</a>, for Android.</strong><br>
   In-app updates, a review prompt that asks you first, your other apps from a JSON feed, a What's new screen and an open source licence list, in one theme.<br>
-  Plain Kotlin at the core for View apps, a Compose module for new ones. No ad SDK, no analytics, no permissions beyond <code>INTERNET</code>.
+  Plain Kotlin at the core for View apps, a Compose module for new ones. No ad SDK, no analytics, no permissions beyond <code>INTERNET</code>, and no view of the phone's other apps unless you add "More apps".
 </p>
 
 <p align="center">
@@ -49,8 +49,10 @@ Recorded from the sample app in [`sample/`](sample) (section 11) on an API 33 em
 
 | Module | What's in it |
 | --- | --- |
-| `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `AppPromos`, `WhatsNew`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency. |
-| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `WhatsNewList()`, `WhatsNewDialog()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
+| `kit` | `Updates` (`PlayUpdates` + `JsonUpdates`), `AppReview`, `ReviewAsk`, `WhatsNew`, `KitTheme`, with plain-View screens and dialogs for each. No Compose dependency, and no package visibility: an app with only `kit` can't see the phone's other apps. |
+| `kit-compose` | `SyncKitTheme()`, `UpdateFlow()`, `UpdatePrompt()`, `UpdateReadyBar()`, `ReviewPrompt()`, `StarRating()`, `WhatsNewList()`, `WhatsNewDialog()`, each prompt with a slot to draw it yourself and a `remember…State()` behind it. Depends on `kit`. |
+| `kit-promo` | "More apps" for View apps: `AppPromos` (the feed, `openList()`, `showFeaturedDialog()`), `PromoIcons`, `MoreAppsActivity`. The one module that adds a `<queries>` block for launcher apps, so it can tell which of your apps are installed; that also lets the app see most of the phone's apps, which is why it's separate. Depends on `kit`. |
+| `kit-promo-compose` | `MoreAppsRow()`, `MoreAppsList()`, `FeaturedPromoDialog()`, `rememberFeaturedPromoState()`, `PromoIcon()`. Depends on `kit-promo` and `kit-compose`. |
 | `kit-oss` | The open source licence list for View apps: `OpenSource` (the data, `open()`) and `OpenSourceActivity`, on [AboutLibraries](https://github.com/mikepenz/AboutLibraries) core. Separate, so an app with its own licence screen doesn't carry it, and with no Compose in it, so a View app's licence list doesn't name Compose. Depends on `kit`. |
 | `kit-oss-compose` | `OpenSourceScreen()`, the licence list for Compose apps (list, compact, cards, by licence). Depends on `kit-oss`. |
 | `sample` | "Sample App": a Material You app with every feature behind a button, sample update and release-notes text, the real Trilokia promo feed. |
@@ -86,22 +88,24 @@ dependencyResolutionManagement {
 }
 ```
 
-In the app module (the latest release is `v2.1.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed, and the one Gradle line 2.1 asks of a Compose app that shows the licence list):
+In the app module (the latest release is `v3.0.0`; [CHANGELOG.md](CHANGELOG.md) lists what changed, and the one Gradle line 3.0 asks of an app that shows "More apps"):
 
 ```kotlin
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit:v2.1.0")
-    implementation("com.github.Trilokia.publishly-android:kit-compose:v2.1.0")       // Compose apps only
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.1.0")           // the open source licence list, View apps (OpenSource.open), see section 8
-    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")   // the licence list for Compose apps (OpenSourceScreen); brings kit-oss with it
+    implementation("com.github.Trilokia.publishly-android:kit:v3.0.0")
+    implementation("com.github.Trilokia.publishly-android:kit-compose:v3.0.0")         // Compose apps only
+    implementation("com.github.Trilokia.publishly-android:kit-promo:v3.0.0")           // "More apps", View apps (AppPromos), see section 6
+    implementation("com.github.Trilokia.publishly-android:kit-promo-compose:v3.0.0")   // "More apps" for Compose apps (MoreAppsRow, ...); brings kit-promo with it
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v3.0.0")             // the open source licence list, View apps (OpenSource.open), see section 8
+    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v3.0.0")     // the licence list for Compose apps (OpenSourceScreen); brings kit-oss with it
 }
 ```
 
-A View app takes `kit` and `kit-oss`; a Compose app takes `kit`, `kit-compose` and `kit-oss-compose`.
+Take only what the app shows. A View app takes `kit`, plus `kit-promo` and `kit-oss` for those features; a Compose app takes `kit` and `kit-compose`, plus `kit-promo-compose` and `kit-oss-compose`.
 
-Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:2.1.0` / `inc.trilokia:kit-compose:2.1.0` / `inc.trilokia:kit-oss:2.1.0` / `inc.trilokia:kit-oss-compose:2.1.0`.
+Working on the library itself: `./gradlew publishToMavenLocal`, then `mavenLocal()` in the repositories and `inc.trilokia:kit:3.0.0`, and the same for `kit-compose`, `kit-promo`, `kit-promo-compose`, `kit-oss` and `kit-oss-compose`.
 
-The library declares the `INTERNET` permission and a `<queries>` block for launcher apps (so it can see which of your apps are installed). Nothing else to add to the manifest.
+`kit` declares the `INTERNET` permission and nothing else. Only `kit-promo` (also through `kit-promo-compose`) adds package visibility: a `<queries>` block for apps with a launcher icon. Android 11+ hides other apps unless asked, and "More apps" needs to know which of your apps are installed (to list them last, with Open) and to open them. That query also lets the app see most of the phone's other apps, so an app that promises to stay private shouldn't take `kit-promo` unless it shows "More apps". Nothing is read or sent either way, and nothing else needs adding to the manifest.
 
 ### An app without the INTERNET permission
 
@@ -116,7 +120,7 @@ An offline app (a converter, a calculator) may want no network permission at all
 
 ## 2. Quick start: a Compose app
 
-Everything wired into one activity. Each piece is optional; delete what you don't need.
+Everything wired into one activity. Each piece is optional; delete what you don't need. The promo lines need `kit-promo-compose`, the licence screen `kit-oss-compose`.
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -164,7 +168,7 @@ class MainActivity : ComponentActivity() {
 
 ## 3. Quick start: a View app
 
-The same features without Compose. Every screen has a plain-View version that takes the app's colours (see [Theme](#9-theme-one-look-for-every-element-kittheme)).
+The same features without Compose. Every screen has a plain-View version that takes the app's colours (see [Theme](#9-theme-one-look-for-every-element-kittheme)). The promo lines need `kit-promo`, the licence screen `kit-oss`.
 
 ```kotlin
 class MainActivity : AppCompatActivity() {   // ComponentActivity or AppCompatActivity, for Play updates
@@ -389,6 +393,25 @@ The feedback mail opens in the user's mail app with your address, the subject, a
 
 Cross-promotion without an ad network: a JSON file on your server lists your apps, and every app shows them: the ones the phone doesn't have yet first, then the ones it has, with an "Installed · Thanks!" label and an Open button. Edit the file, and all apps pick it up within a day.
 
+It lives in its own modules, `kit-promo` (the feed, the View screen and dialog) and `kit-promo-compose` (the Compose row, list and dialog), with the same package names as before (`inc.trilokia.publishly.kit.promo`, `inc.trilokia.publishly.kit.compose`):
+
+```kotlin
+implementation("com.github.Trilokia.publishly-android:kit-promo:v3.0.0")           // View apps
+implementation("com.github.Trilokia.publishly-android:kit-promo-compose:v3.0.0")   // Compose apps (brings kit-promo with it)
+```
+
+**Package visibility.** `kit-promo` is the only module that adds a `<queries>` block to your merged manifest, for apps with a launcher icon (`MAIN` + `LAUNCHER`). Android 11+ hides other apps unless asked, and without it every one of your apps would look not installed: "Get" for an app the phone already has, and Open falling back to the Play page. That query lets the app see most of the phone's apps (nothing is read or sent; it is only what the app *can* see), which is why it isn't in `kit`. Opening a Play page needs no visibility. If you want the narrowest possible view, remove the kit's intent and name your own apps instead; the feed's other apps will then show as not installed:
+
+```xml
+<queries>
+    <intent tools:node="remove">
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+    <package android:name="inc.trilokia.cardjuggler" />
+</queries>
+```
+
 ```mermaid
 flowchart TD
     feed[apps.json on your server] -- "fetched once a day, kept for offline" --> self{This app itself?}
@@ -556,8 +579,8 @@ plugins {
     id("com.mikepenz.aboutlibraries.plugin.android")
 }
 dependencies {
-    implementation("com.github.Trilokia.publishly-android:kit-oss:v2.1.0")           // View apps: OpenSource.open(context)
-    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")   // Compose apps: OpenSourceScreen() (brings kit-oss with it)
+    implementation("com.github.Trilokia.publishly-android:kit-oss:v3.0.0")           // View apps: OpenSource.open(context)
+    implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v3.0.0")   // Compose apps: OpenSourceScreen() (brings kit-oss with it)
 }
 ```
 
@@ -785,9 +808,9 @@ The strings, and where each one shows (the review prompt's labels also reach you
 | `kit_feedback_subject` | Feedback on %1$s %2$s | Feedback mail |
 | `kit_feedback_rating` | My rating: %1$d / 5 | Feedback mail |
 | `kit_feedback_body` | What could be better? | Feedback mail |
-| `kit_more_apps` | More apps from us | More apps title |
+| `kit_more_apps` | More apps from us | More apps title (`kit-promo`) |
 | `kit_more_apps_from` | More apps from %1$s | More apps title, with a developer |
-| `kit_get` | Get | More apps, featured dialog |
+| `kit_get` | Get | More apps, featured dialog (`kit-promo`) |
 | `kit_open` | Open | More apps, installed |
 | `kit_installed_thanks` | Installed · Thanks! | More apps, installed |
 | `kit_installed` | Installed | More apps row, installed |
@@ -802,7 +825,7 @@ The strings, and where each one shows (the review prompt's labels also reach you
 | `kit_open_source_empty` | No licence list in this build. | Licence screen (`kit-oss`) |
 | `kit_licence_unknown` | Other licences | Licence screen, By licence (`kit-oss-compose`) |
 
-A language the kit doesn't ship falls back to English; add a `values-xx/strings.xml` with the same names to your app and the kit speaks it.
+The promo strings stay in `kit`, so overrides and `R.string.kit_get` work whether or not the app takes `kit-promo`. A language the kit doesn't ship falls back to English; add a `values-xx/strings.xml` with the same names to your app and the kit speaks it.
 
 ## 10. Before you ship
 
@@ -836,13 +859,14 @@ The recordings at the top of this page are this app. The update dialog, the feat
 ## 12. Build and test
 
 ```sh
-./gradlew :kit:testDebugUnitTest      # unit tests: real update JSON, the promo template, real Play pages and GitHub answers, the review and what's-new rules
+./gradlew :kit:testDebugUnitTest      # unit tests: real update JSON, real Play pages and GitHub answers, the review and what's-new rules
+./gradlew :kit-promo:testDebugUnitTest  # the promo rules on the real template feed and the sample's bundled copy
 ./gradlew :kit-oss:testDebugUnitTest  # the licence text reflow on a real aboutlibraries.json, the name order
 ./gradlew :sample:installDebug        # the sample app
-./gradlew publishToMavenLocal         # the four library modules into ~/.m2
+./gradlew publishToMavenLocal         # the six library modules into ~/.m2
 ```
 
-Tag the repo (`v2.1.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
+Tag the repo (`v3.0.0`, matching `version` in the root `build.gradle.kts`) to publish a release through JitPack; [jitpack.yml](jitpack.yml) builds it with JDK 17.
 
 ## License
 

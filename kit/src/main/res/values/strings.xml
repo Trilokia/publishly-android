@@ -22,7 +22,7 @@
     <string name="kit_feedback_subject">Feedback on %1$s %2$s</string>
     <string name="kit_feedback_rating">My rating: %1$d / 5</string>
     <string name="kit_feedback_body">What could be better?</string>
-    <!-- Promoting your own apps (AppPromos) -->
+    <!-- Promoting your own apps (AppPromos, in kit-promo). Kept in kit so overrides and R.string.kit_get keep working, and the prompts you draw yourself can use them -->
     <string name="kit_more_apps">More apps from us</string>
     <string name="kit_more_apps_from">More apps from %1$s</string>
     <string name="kit_get">Get</string>

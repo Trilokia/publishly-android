@@ -34,8 +34,6 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
-    // The check mark on the "Installed" label (the core set only, a few dozen icons)
-    implementation(libs.compose.material.icons.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
 }
 
@@ -50,7 +48,7 @@ publishing {
             // screens built from POMs list the same name twice
             pom {
                 name.set("Publishly Kit Compose")
-                description.set("Jetpack Compose UI for Publishly Kit's update, review and \"More apps\" prompts.")
+                description.set("Jetpack Compose UI for Publishly Kit's update, review and what's-new prompts.")
                 url.set("https://github.com/Trilokia/publishly-android")
                 licenses {
                     license {

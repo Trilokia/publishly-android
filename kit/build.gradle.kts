@@ -55,7 +55,7 @@ publishing {
             // screens built from POMs list the same name twice
             pom {
                 name.set("Publishly Kit")
-                description.set("Play in-app updates with an update.json fallback, a review prompt and a \"More apps\" feed for Android apps.")
+                description.set("Play in-app updates with an update.json fallback, a review prompt and what's-new notes for Android apps.")
                 url.set("https://github.com/Trilokia/publishly-android")
                 licenses {
                     license {

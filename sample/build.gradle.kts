@@ -38,6 +38,8 @@ android {
 dependencies {
     implementation(project(":kit-compose"))
     implementation(project(":kit-oss-compose"))
+    // "More apps": brings kit-promo, the one module that adds package visibility (<queries> for launcher apps)
+    implementation(project(":kit-promo-compose"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

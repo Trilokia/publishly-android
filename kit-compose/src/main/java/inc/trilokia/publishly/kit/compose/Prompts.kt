@@ -1,5 +1,6 @@
 package inc.trilokia.publishly.kit.compose
 
+import androidx.annotation.RestrictTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -109,9 +110,10 @@ object PromptDefaults {
     )
 }
 
-/** A text button in the style's accent, for the prompts' secondary answers. */
+/** A text button in the style's accent, for the prompts' secondary answers. Public only for the kit's other modules (kit-promo-compose). */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @Composable
-internal fun PromptTextButton(style: PromptStyle, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, text: @Composable () -> Unit) {
+fun PromptTextButton(style: PromptStyle, onClick: () -> Unit, enabled: Boolean = true, modifier: Modifier = Modifier, text: @Composable () -> Unit) {
     TextButton(onClick = onClick, enabled = enabled, modifier = modifier, colors = ButtonDefaults.textButtonColors(contentColor = style.accentColor)) {
         ProvideTextStyle(style.label, text)
     }

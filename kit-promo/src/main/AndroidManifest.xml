@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Package visibility, the one thing this module adds that the rest of the kit doesn't.
+         Android 11+ hides other apps unless asked, and AppPromos needs to see which of your apps
+         are installed (isInstalled, to list them last or leave them out) and their launcher screen
+         (launch, for "Open"). Asking for "apps with a launcher icon" covers that without the
+         QUERY_ALL_PACKAGES permission Play frowns on. It does let this app see most installed apps,
+         which is why it lives here and not in kit: apps without "More apps" don't get it.
+         Opening the Play page needs no visibility: starting an activity isn't filtered -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application>
+        <!-- The plain-View "More apps" screen, for apps without Compose. It takes the app's theme -->
+        <activity
+            android:name="inc.trilokia.publishly.kit.promo.MoreAppsActivity"
+            android:exported="false"
+            android:label="@string/kit_more_apps" />
+    </application>
+</manifest>

@@ -1,6 +1,5 @@
 package inc.trilokia.publishly.kit
 
-import inc.trilokia.publishly.kit.promo.AppPromos
 import inc.trilokia.publishly.kit.update.JsonUpdates
 import inc.trilokia.publishly.kit.whatsnew.WhatsNew
 import inc.trilokia.publishly.kit.whatsnew.WhatsNewSource
@@ -28,17 +27,16 @@ class KitNetworkTest {
         assertEquals("fetched", KitNetwork.fetchIfPermitted(permitted = true) { "fetched" })
     }
 
+    // The promo feed's fetch has the same test in kit-promo (PromoNetworkTest)
     @Test
     fun `the real fetches are skipped without INTERNET, and run with it`() {
         // Skipped: null, no exception, although the address can't be reached
         runBlocking {
             assertNull(KitNetwork.fetchIfPermitted(false) { JsonUpdates.fetch(closedPort + "update.json") })
-            assertNull(KitNetwork.fetchIfPermitted(false) { AppPromos.fetch(closedPort + "apps.json") })
             assertNull(KitNetwork.fetchIfPermitted(false) { WhatsNew.fetch(WhatsNewSource.Json(closedPort + "release-notes.json")) })
         }
         // Attempted: the fetch itself throws, which the callers catch and log
         assertThrows(IOException::class.java) { runBlocking { KitNetwork.fetchIfPermitted(true) { JsonUpdates.fetch(closedPort + "update.json") } } }
-        assertThrows(IOException::class.java) { runBlocking { KitNetwork.fetchIfPermitted(true) { AppPromos.fetch(closedPort + "apps.json") } } }
         assertThrows(IOException::class.java) { runBlocking { KitNetwork.fetchIfPermitted(true) { WhatsNew.fetch(WhatsNewSource.Json(closedPort + "release-notes.json")) } } }
     }
 

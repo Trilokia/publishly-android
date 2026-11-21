@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.0.0
+
+The one change an app that shows "More apps" must make: add `implementation("com.github.Trilokia.publishly-android:kit-promo-compose:v3.0.0")` (Compose; it brings `kit-promo` with it) or `implementation("com.github.Trilokia.publishly-android:kit-promo:v3.0.0")` (View). Classes, packages, strings and behaviour are unchanged. Apps without "More apps" change nothing but the version, and lose the package visibility they never used. Found when Card Juggler, a privacy-first app that uses the kit only for updates and review, showed the launcher query in its merged manifest.
+
+- **Breaking: "More apps" moved to its own modules, and `kit` no longer sees other apps.** `kit` declared a `<queries>` block for every app with a launcher icon, and manifest merging copied it into every app that used the kit, so all of them could see most of the phone's installed apps. Only "More apps" needs it (`AppPromos.isInstalled()` and `launch()`). `AppPromos`, `PromoApp`, `PromoFeed`, `FeaturedPromo`, `PromoIcons` and `MoreAppsActivity` are now in `kit-promo`, with that `<queries>` block and the `MoreAppsActivity` entry in its manifest. `MoreAppsRow`, `MoreAppsList`, `FeaturedPromoDialog`, `rememberFeaturedPromoState`, `PromoIcon`, `MoreAppsStyle` / `MoreAppsDefaults` and the rest of `MoreApps.kt` are in `kit-promo-compose`, which depends on `kit-promo` and `kit-compose`. An app with `kit` and `kit-compose` alone gets no `<queries>` from the kit; checked on the merged manifest of a test app, and CI now fails if `kit` or `kit-compose` declares one.
+- The promo strings (`kit_more_apps`, `kit_get`, `kit_open`, `kit_not_now`, …) stay in `kit`, so overrides, translations and `R.string.kit_get` in your own prompts keep working.
+- `KitNetwork` and `PromptTextButton` are public, marked `@RestrictTo(LIBRARY_GROUP)`, so `kit-promo` and `kit-promo-compose` share them; they are not for app code.
+- `kit-compose` no longer depends on the Material icons (only the "Installed" check mark used them; it moved to `kit-promo-compose`).
+- The manifest comment no longer claims the query is needed to open the Play Store: starting an activity isn't filtered by package visibility.
+- Sample: depends on `kit-promo-compose`; Convert+ is in the bundled feed, with its icon. The promo tests follow the real feed (nine apps).
+
 ## 2.1.0
 
 The one change a 2.0 Compose app must make: if it shows `OpenSourceScreen`, add `implementation("com.github.Trilokia.publishly-android:kit-oss-compose:v2.1.0")` (it brings `kit-oss` with it). View apps change nothing. Four fixes to the licence list, found when Gamers GLTool Pro (a Java, View app) adopted 2.0.1:

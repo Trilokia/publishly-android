@@ -15,7 +15,7 @@ class AppPromosTest {
 
     @Test
     fun `reads the template feed`() {
-        assertEquals(8, feed.apps.size)
+        assertEquals(9, feed.apps.size)
         val card = feed.apps.first()
         assertEquals("inc.trilokia.cardjuggler", card.packageName)
         assertEquals("Card Juggler: Bank Card Offers", card.name)
@@ -53,6 +53,7 @@ class AppPromosTest {
         assertEquals(
             listOf(
                 "inc.trilokia.cardjuggler",
+                "inc.trilokia.convert",
                 "inc.trilokia.pubgfxtool",
                 "inc.trilokia.gfxtool",
                 "inc.trilokia.addon.graphics.manager",
@@ -68,6 +69,7 @@ class AppPromosTest {
         val all = AppPromos.arrange(feed, self = "inc.trilokia.pubgfxtool.free") { it in installed }
         assertEquals(
             listOf(
+                "inc.trilokia.convert" to false,
                 "inc.trilokia.pubgfxtool" to false,
                 "inc.trilokia.gfxtool.free" to false,
                 "inc.trilokia.gfxtool" to false,
