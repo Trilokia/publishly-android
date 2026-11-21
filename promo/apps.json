@@ -10,6 +10,15 @@
       "priority": 100
     },
     {
+      "package": "inc.trilokia.convert",
+      "name": "Convert+: Offline PDF & Photos",
+      "tagline": "Convert PDFs, photos, videos and documents on your phone. Nothing is uploaded.",
+      "icon": "https://www.trilokiainc.com/convert/assets/icon.png",
+      "iconUrl": "https://www.trilokiainc.com/convert/assets/icon.png",
+      "badge": "New",
+      "priority": 95
+    },
+    {
       "package": "inc.trilokia.pubgfxtool.free",
       "name": "PGT: GFX, Launcher & Optimizer",
       "tagline": "Unlock HDR, 90 FPS and smoother graphics in BGMI / PUBG",
