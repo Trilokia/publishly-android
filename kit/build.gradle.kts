@@ -28,7 +28,7 @@ android {
 }
 
 dependencies {
-    // `api`, not `implementation`: apps use these SDKs' own types (AdView, AdSize, RewardItem...)
+    // `api`, not `implementation`: apps use these libraries' own types (ReviewInfo, AppUpdateInfo...)
     api(libs.play.review)
     api(libs.play.app.update)
     implementation(libs.androidx.core.ktx)

@@ -25,10 +25,14 @@ jobs:
       # template, saved Play pages); the sample build proves the three library modules and the
       # AboutLibraries plugin still work together
       - name: Test the library
-        run: ./gradlew :kit:testDebugUnitTest --no-daemon --stacktrace
+        run: ./gradlew :kit:testDebugUnitTest :kit-oss:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Build the sample app
         run: ./gradlew :sample:assembleDebug --no-daemon --stacktrace
+
+      # R8 and the release lint (including the Fragment rule that kit/build.gradle.kts guards against)
+      - name: Build the sample app (release)
+        run: ./gradlew :sample:assembleRelease :sample:lintVitalRelease --no-daemon --stacktrace
 
       - name: Publish the modules to the local Maven repo
         run: ./gradlew publishToMavenLocal --no-daemon
@@ -38,5 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: kit/build/reports/tests/testDebugUnitTest
+          path: |
+            kit/build/reports/tests/testDebugUnitTest
+            kit-oss/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
